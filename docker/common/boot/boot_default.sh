@@ -15,6 +15,9 @@ XFORCE_SYNC_PERSISTENCE="${XFORCE_SYNC_PERSISTENCE:-auto}"
 XFORCE_SYNC_WORKSPACE="${XFORCE_SYNC_WORKSPACE:-auto}"
 XFORCE_SYNC_HOME="${XFORCE_SYNC_HOME:-auto}"
 XFORCE_SYNC_VENV="${XFORCE_SYNC_VENV:-auto}"
+XFORCE_PROVISION_ON_BOOT="${XFORCE_PROVISION_ON_BOOT:-auto}"
+XFORCE_PROVISION_MANIFEST="${XFORCE_PROVISION_MANIFEST:-}"
+XFORCE_PROVISION_STATE_DIR="${XFORCE_PROVISION_STATE_DIR:-/.provisioner_state}"
 
 export XFORCE_BOOT_ROOT XFORCE_BOOT_DIR XFORCE_BOOT_STATE_DIR XFORCE_BOOT_STARTED_AT
 export XFORCE_IMAGE_VARIANT="${XFORCE_IMAGE_VARIANT:-unknown}"
@@ -97,6 +100,31 @@ while [ "$#" -gt 0 ]; do
       XFORCE_SYNC_VENV=0
       shift
       ;;
+    --provision)
+      XFORCE_PROVISION_ON_BOOT=1
+      shift
+      ;;
+    --no-provision)
+      XFORCE_PROVISION_ON_BOOT=0
+      shift
+      ;;
+    --provision-manifest)
+      if [ "$#" -lt 2 ]; then
+        boot_log error args "missing value for --provision-manifest"
+        exit 2
+      fi
+      XFORCE_PROVISION_MANIFEST="$2"
+      XFORCE_PROVISION_ON_BOOT=1
+      shift 2
+      ;;
+    --provision-state-dir)
+      if [ "$#" -lt 2 ]; then
+        boot_log error args "missing value for --provision-state-dir"
+        exit 2
+      fi
+      XFORCE_PROVISION_STATE_DIR="$2"
+      shift 2
+      ;;
     --)
       shift
       while [ "$#" -gt 0 ]; do
@@ -113,6 +141,7 @@ done
 
 export XFORCE_SKIP_READY_MARKER XFORCE_DEBUG_BOOT XFORCE_PRINT_ENV XFORCE_SOURCE_BOOT_FRAGMENTS
 export XFORCE_SYNC_PERSISTENCE XFORCE_SYNC_WORKSPACE XFORCE_SYNC_HOME XFORCE_SYNC_VENV
+export XFORCE_PROVISION_ON_BOOT XFORCE_PROVISION_MANIFEST XFORCE_PROVISION_STATE_DIR
 export XFORCE_PERSISTENCE_STATE_DIR="${XFORCE_PERSISTENCE_STATE_DIR:-${WORKSPACE_DIR}/.xforce-state}"
 export XFORCE_WORKSPACE_SEED_DIR="${XFORCE_WORKSPACE_SEED_DIR:-/opt/xforce-ai/share/workspace-seed}"
 

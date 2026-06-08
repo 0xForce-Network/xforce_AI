@@ -15,6 +15,10 @@ required_paths=(
   /etc/xforce_ai_boot.d/40-venv-sync.sh
   /etc/xforce_ai_boot.d/99-ready.sh
   /opt/xforce-ai/share/workspace-seed
+  /opt/xforce-ai/share/provisioner/examples/provisioning.example.yaml
+  /opt/xforce-ai/lib/provisioner
+  /opt/xforce-ai/bin/xforce-provision
+  /opt/xforce-ai/bin/provisioner-smoke-test.sh
   /etc/supervisor/conf.d
   /venv/main
   /workspace
@@ -35,6 +39,16 @@ fi
 
 if [ ! -x /opt/xforce-ai/bin/boot_default.sh ]; then
   echo "default boot script is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/xforce-provision ]; then
+  echo "provisioner CLI is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/provisioner-smoke-test.sh ]; then
+  echo "provisioner smoke test is not executable" >&2
   exit 1
 fi
 
@@ -64,6 +78,13 @@ grep -q '^XFORCE_SYNC_PERSISTENCE_STATUS=enabled' /tmp/xforce-ai/persistence.env
 grep -q '^XFORCE_SYNC_WORKSPACE_STATUS=' /tmp/xforce-ai/persistence.env
 grep -q '^XFORCE_SYNC_HOME_STATUS=synced' /tmp/xforce-ai/persistence.env
 grep -q '^XFORCE_SYNC_VENV_STATUS=synced' /tmp/xforce-ai/persistence.env
+
+if [ ! -f /tmp/xforce-ai/provisioner.env ]; then
+  echo "provisioner summary missing" >&2
+  exit 1
+fi
+
+grep -q '^XFORCE_PROVISION_STATUS=skipped' /tmp/xforce-ai/provisioner.env
 
 if [ ! -d /workspace/.xforce-state ]; then
   echo "persistence state directory missing" >&2
@@ -317,6 +338,7 @@ run_workspace_fixture
 run_home_fixture
 run_venv_fixture
 run_nushell_smoke
+/opt/xforce-ai/bin/provisioner-smoke-test.sh
 
 python3 --version
 /venv/main/bin/python --version

@@ -38,6 +38,8 @@ COPY docker/common/python-requirements.txt /tmp/xforce-python-requirements.txt
 COPY docker/common/fastsources.list /tmp/xforce-fastsources.list
 COPY docker/common/install-nushell.sh /tmp/xforce-install-nushell.sh
 COPY docker/common/nushell/ /tmp/xforce-nushell/
+COPY docker/common/provisioner/ /tmp/xforce-provisioner/
+COPY docker/common/xforce-provision /tmp/xforce-provision
 
 RUN awk '/BEGIN ubuntu-jammy/{in_block=1; next} /END ubuntu-jammy/{in_block=0} in_block && /^deb /{print}' /tmp/xforce-fastsources.list > /etc/apt/sources.list \
     && rm -f /etc/apt/sources.list.d/ubuntu.sources \
@@ -46,20 +48,25 @@ RUN awk '/BEGIN ubuntu-jammy/{in_block=1; next} /END ubuntu-jammy/{in_block=0} i
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid "${XFORCE_GID}" "${XFORCE_USER}" \
     && useradd --uid "${XFORCE_UID}" --gid "${XFORCE_GID}" --create-home --shell /bin/bash "${XFORCE_USER}" \
-    && mkdir -p /opt/xforce-ai/bin /opt/xforce-ai/lib /opt/xforce-ai/share/workspace-seed /opt/portal-aio /etc/xforce_ai_boot.d /etc/supervisor/conf.d "${WORKSPACE_DIR}" "${VENV_DIR}" \
+    && mkdir -p /opt/xforce-ai/bin /opt/xforce-ai/lib /opt/xforce-ai/share/workspace-seed /opt/xforce-ai/share/provisioner/examples /opt/portal-aio /etc/xforce_ai_boot.d /etc/supervisor/conf.d "${WORKSPACE_DIR}" "${VENV_DIR}" \
     && python3 -m venv "${VENV_DIR}" \
     && if grep -vE '^\s*(#|$)' /tmp/xforce-python-requirements.txt | grep -q .; then "${VENV_DIR}/bin/pip" install --no-cache-dir --upgrade -r /tmp/xforce-python-requirements.txt; fi \
+    && cp -a /tmp/xforce-provisioner /opt/xforce-ai/lib/provisioner \
+    && cp -a /tmp/xforce-provisioner/examples/. /opt/xforce-ai/share/provisioner/examples/ \
+    && cp /tmp/xforce-provision /opt/xforce-ai/bin/xforce-provision \
+    && chmod 0755 /opt/xforce-ai/bin/xforce-provision \
     && if [ "${ENABLE_NUSHELL}" = "1" ]; then bash /tmp/xforce-install-nushell.sh && { grep -qxF /usr/local/bin/nu /etc/shells || printf '%s\n' /usr/local/bin/nu >> /etc/shells; } && usermod --shell /usr/local/bin/nu "${XFORCE_USER}" && mkdir -p "/home/${XFORCE_USER}/.config/nushell" && cp -a /tmp/xforce-nushell/. "/home/${XFORCE_USER}/.config/nushell/"; fi \
     && chown -R "${XFORCE_UID}:${XFORCE_GID}" "${WORKSPACE_DIR}" "/home/${XFORCE_USER}" "${VENV_DIR}" \
-    && rm -rf /tmp/xforce-base-packages.txt /tmp/xforce-python-requirements.txt /tmp/xforce-fastsources.list /tmp/xforce-install-nushell.sh /tmp/xforce-nushell
+    && rm -rf /tmp/xforce-base-packages.txt /tmp/xforce-python-requirements.txt /tmp/xforce-fastsources.list /tmp/xforce-install-nushell.sh /tmp/xforce-nushell /tmp/xforce-provisioner /tmp/xforce-provision
 
 COPY docker/common/boot/entrypoint.sh /opt/xforce-ai/bin/entrypoint.sh
 COPY docker/common/boot/boot_default.sh /opt/xforce-ai/bin/boot_default.sh
 COPY docker/common/boot/xforce_ai_boot.d/ /etc/xforce_ai_boot.d/
 COPY docker/common/workspace-seed/ /opt/xforce-ai/share/workspace-seed/
 COPY docker/common/smoke-test.sh /opt/xforce-ai/bin/smoke-test.sh
+COPY docker/common/provisioner-smoke-test.sh /opt/xforce-ai/bin/provisioner-smoke-test.sh
 
-RUN chmod 0755 /opt/xforce-ai/bin/entrypoint.sh /opt/xforce-ai/bin/boot_default.sh /opt/xforce-ai/bin/smoke-test.sh \
+RUN chmod 0755 /opt/xforce-ai/bin/entrypoint.sh /opt/xforce-ai/bin/boot_default.sh /opt/xforce-ai/bin/smoke-test.sh /opt/xforce-ai/bin/provisioner-smoke-test.sh \
     && chmod 0644 /etc/xforce_ai_boot.d/*.sh
 
 WORKDIR ${WORKSPACE_DIR}

@@ -1,0 +1,32 @@
+apiVersion: xforce.ai/v1
+kind: ProvisioningManifest
+metadata:
+  name: xforce-example
+  description: Example xforce_AI provisioning manifest
+defaults:
+  retries: 3
+  backoff:
+    baseSeconds: 1
+    maxSeconds: 30
+stages:
+  - id: apt-system-tools
+    type: apt
+    packages:
+      - git
+      - curl
+  - id: pip-runtime
+    type: pip
+    venv: /venv/main
+    requirements:
+      - /workspace/requirements.txt
+  - id: clone-app
+    type: git
+    repo: https://example.invalid/org/app.git
+    dest: /workspace/app
+    ref: main
+  - id: download-model
+    type: model
+    url: https://example.invalid/model.gguf
+    dest: /workspace/models/model.gguf
+    sha256: 0000000000000000000000000000000000000000000000000000000000000000
+    format: gguf
