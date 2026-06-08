@@ -38,7 +38,7 @@ RUN awk '/BEGIN ubuntu-jammy/{in_block=1; next} /END ubuntu-jammy/{in_block=0} i
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid "${XFORCE_GID}" "${XFORCE_USER}" \
     && useradd --uid "${XFORCE_UID}" --gid "${XFORCE_GID}" --create-home --shell /bin/bash "${XFORCE_USER}" \
-    && mkdir -p /opt/xforce-ai/bin /opt/xforce-ai/lib /opt/portal-aio /etc/xforce_ai_boot.d /etc/supervisor/conf.d "${WORKSPACE_DIR}" "${VENV_DIR}" \
+    && mkdir -p /opt/xforce-ai/bin /opt/xforce-ai/lib /opt/xforce-ai/share/workspace-seed /opt/portal-aio /etc/xforce_ai_boot.d /etc/supervisor/conf.d "${WORKSPACE_DIR}" "${VENV_DIR}" \
     && python3 -m venv "${VENV_DIR}" \
     && if grep -vE '^\s*(#|$)' /tmp/xforce-python-requirements.txt | grep -q .; then "${VENV_DIR}/bin/pip" install --no-cache-dir --upgrade -r /tmp/xforce-python-requirements.txt; fi \
     && chown -R "${XFORCE_UID}:${XFORCE_GID}" "${WORKSPACE_DIR}" "/home/${XFORCE_USER}" "${VENV_DIR}" \
@@ -47,6 +47,7 @@ RUN awk '/BEGIN ubuntu-jammy/{in_block=1; next} /END ubuntu-jammy/{in_block=0} i
 COPY docker/common/boot/entrypoint.sh /opt/xforce-ai/bin/entrypoint.sh
 COPY docker/common/boot/boot_default.sh /opt/xforce-ai/bin/boot_default.sh
 COPY docker/common/boot/xforce_ai_boot.d/ /etc/xforce_ai_boot.d/
+COPY docker/common/workspace-seed/ /opt/xforce-ai/share/workspace-seed/
 COPY docker/common/smoke-test.sh /opt/xforce-ai/bin/smoke-test.sh
 
 RUN chmod 0755 /opt/xforce-ai/bin/entrypoint.sh /opt/xforce-ai/bin/boot_default.sh /opt/xforce-ai/bin/smoke-test.sh \

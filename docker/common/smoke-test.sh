@@ -10,7 +10,11 @@ required_paths=(
   /etc/xforce_ai_boot.d/00-env.sh
   /etc/xforce_ai_boot.d/05-nvidia-cuda.sh
   /etc/xforce_ai_boot.d/06-amd-rocm.sh
+  /etc/xforce_ai_boot.d/20-workspace-sync.sh
+  /etc/xforce_ai_boot.d/30-home-sync.sh
+  /etc/xforce_ai_boot.d/40-venv-sync.sh
   /etc/xforce_ai_boot.d/99-ready.sh
+  /opt/xforce-ai/share/workspace-seed
   /etc/supervisor/conf.d
   /venv/main
   /workspace
@@ -50,6 +54,31 @@ fi
 grep -q '^XFORCE_GPU_VENDOR=' /tmp/xforce-ai/gpu-adaptation.env
 grep -q '^XFORCE_CUDA_STATUS=' /tmp/xforce-ai/gpu-adaptation.env
 grep -q '^XFORCE_ROCM_STATUS=' /tmp/xforce-ai/gpu-adaptation.env
+
+if [ ! -f /tmp/xforce-ai/persistence.env ]; then
+  echo "persistence summary missing" >&2
+  exit 1
+fi
+
+grep -q '^XFORCE_SYNC_PERSISTENCE_STATUS=enabled' /tmp/xforce-ai/persistence.env
+grep -q '^XFORCE_SYNC_WORKSPACE_STATUS=' /tmp/xforce-ai/persistence.env
+grep -q '^XFORCE_SYNC_HOME_STATUS=synced' /tmp/xforce-ai/persistence.env
+grep -q '^XFORCE_SYNC_VENV_STATUS=synced' /tmp/xforce-ai/persistence.env
+
+if [ ! -d /workspace/.xforce-state ]; then
+  echo "persistence state directory missing" >&2
+  exit 1
+fi
+
+if [ ! -L /home/user ]; then
+  echo "home sync did not link /home/user" >&2
+  exit 1
+fi
+
+if [ ! -L /venv/main ]; then
+  echo "venv sync did not link /venv/main" >&2
+  exit 1
+fi
 
 boot_log() {
   level="$1"
@@ -158,11 +187,94 @@ EOF_ROCM_SMI
   rm -rf "$tmp"
 }
 
+run_workspace_fixture() {
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/workspace" "$tmp/seed" "$tmp/state" "$tmp/boot-state"
+  printf 'seed-new\n' > "$tmp/seed/new.txt"
+  printf 'seed-existing\n' > "$tmp/seed/existing.txt"
+  printf 'user-existing\n' > "$tmp/workspace/existing.txt"
+  (
+    export WORKSPACE_DIR="$tmp/workspace"
+    export XFORCE_WORKSPACE_SEED_DIR="$tmp/seed"
+    export XFORCE_PERSISTENCE_STATE_DIR="$tmp/state"
+    export XFORCE_BOOT_STATE_DIR="$tmp/boot-state"
+    export XFORCE_SYNC_PERSISTENCE=1
+    export XFORCE_SYNC_WORKSPACE=1
+    # shellcheck disable=SC1091
+    . /etc/xforce_ai_boot.d/20-workspace-sync.sh
+    grep -q '^XFORCE_SYNC_WORKSPACE_STATUS=synced' "$tmp/boot-state/workspace-sync.env"
+    grep -q 'seed-new' "$tmp/workspace/new.txt"
+    grep -q 'user-existing' "$tmp/workspace/existing.txt"
+  )
+  rm -rf "$tmp"
+}
+
+run_home_fixture() {
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/workspace" "$tmp/home/user/.ssh" "$tmp/ssh" "$tmp/boot-state"
+  printf 'hello\n' > "$tmp/home/user/profile.txt"
+  printf 'ssh-key\n' > "$tmp/home/user/.ssh/authorized_keys"
+  (
+    export WORKSPACE_DIR="$tmp/workspace"
+    export XFORCE_TEST_USER_HOME="$tmp/home/user"
+    export XFORCE_CONTAINER_SSH_HOME="$tmp/ssh"
+    export XFORCE_PERSISTENCE_STATE_DIR="$tmp/workspace/.xforce-state"
+    export XFORCE_BOOT_STATE_DIR="$tmp/boot-state"
+    export XFORCE_USER=user
+    export XFORCE_UID="$(id -u)"
+    export XFORCE_GID="$(id -g)"
+    export XFORCE_SYNC_PERSISTENCE=1
+    export XFORCE_SYNC_HOME=1
+    # shellcheck disable=SC1091
+    . /etc/xforce_ai_boot.d/30-home-sync.sh
+    grep -q '^XFORCE_SYNC_HOME_STATUS=synced' "$tmp/boot-state/home-sync.env"
+    [ -L "$tmp/home/user" ]
+    grep -q 'hello' "$tmp/workspace/.xforce-state/home/user/profile.txt"
+    [ -d "$tmp/ssh/user/.ssh" ]
+    [ -L "$tmp/workspace/.xforce-state/home/user/.ssh" ]
+  )
+  rm -rf "$tmp"
+}
+
+run_venv_fixture() {
+  tmp="$(mktemp -d)"
+  mkdir -p "$tmp/workspace" "$tmp/venv/main/bin" "$tmp/boot-state"
+  printf 'home = /usr\n' > "$tmp/venv/main/pyvenv.cfg"
+  cat > "$tmp/venv/main/bin/python" <<'EOF_FAKE_PYTHON'
+#!/usr/bin/env bash
+printf 'py3.10\n'
+EOF_FAKE_PYTHON
+  chmod 0755 "$tmp/venv/main/bin/python"
+  (
+    export WORKSPACE_DIR="$tmp/workspace"
+    export VENV_DIR="$tmp/venv/main"
+    export XFORCE_PERSISTENCE_STATE_DIR="$tmp/workspace/.xforce-state"
+    export XFORCE_BOOT_STATE_DIR="$tmp/boot-state"
+    export XFORCE_IMAGE_VARIANT=fixture
+    export XFORCE_IMAGE_VERSION=test
+    export XFORCE_ENV_ID=fixture-env
+    export XFORCE_SYNC_PERSISTENCE=1
+    export XFORCE_SYNC_VENV=1
+    # shellcheck disable=SC1091
+    . /etc/xforce_ai_boot.d/40-venv-sync.sh
+    grep -q '^XFORCE_SYNC_VENV_STATUS=synced' "$tmp/boot-state/venv-sync.env"
+    [ -L "$tmp/venv/main" ]
+    [ -f "$tmp/workspace/.xforce-state/environment/fixture-env/venv/main/pyvenv.cfg" ]
+    # shellcheck disable=SC1091
+    . /etc/xforce_ai_boot.d/40-venv-sync.sh
+    [ -L "$tmp/venv/main" ]
+  )
+  rm -rf "$tmp"
+}
+
 run_cuda_fixture 12.4 12.4 fail
 run_cuda_fixture 12.1 12.1 fail
 run_cuda_fixture 12.1 12.8 pass
 run_rocm_fixture
+run_workspace_fixture
+run_home_fixture
+run_venv_fixture
 
 python3 --version
 /venv/main/bin/python --version
-echo "xforce_AI F004 smoke test passed"
+echo "xforce_AI F005 smoke test passed"

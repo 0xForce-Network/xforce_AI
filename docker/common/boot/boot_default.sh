@@ -11,6 +11,10 @@ XFORCE_SKIP_READY_MARKER=0
 XFORCE_DEBUG_BOOT=0
 XFORCE_PRINT_ENV=0
 XFORCE_SOURCE_BOOT_FRAGMENTS=1
+XFORCE_SYNC_PERSISTENCE="${XFORCE_SYNC_PERSISTENCE:-auto}"
+XFORCE_SYNC_WORKSPACE="${XFORCE_SYNC_WORKSPACE:-auto}"
+XFORCE_SYNC_HOME="${XFORCE_SYNC_HOME:-auto}"
+XFORCE_SYNC_VENV="${XFORCE_SYNC_VENV:-auto}"
 
 export XFORCE_BOOT_ROOT XFORCE_BOOT_DIR XFORCE_BOOT_STATE_DIR XFORCE_BOOT_STARTED_AT
 export XFORCE_IMAGE_VARIANT="${XFORCE_IMAGE_VARIANT:-unknown}"
@@ -61,6 +65,38 @@ while [ "$#" -gt 0 ]; do
       XFORCE_SKIP_READY_MARKER=1
       shift
       ;;
+    --sync-persistence)
+      XFORCE_SYNC_PERSISTENCE=1
+      shift
+      ;;
+    --no-persistence-sync)
+      XFORCE_SYNC_PERSISTENCE=0
+      shift
+      ;;
+    --sync-workspace)
+      XFORCE_SYNC_WORKSPACE=1
+      shift
+      ;;
+    --no-workspace-sync)
+      XFORCE_SYNC_WORKSPACE=0
+      shift
+      ;;
+    --sync-home)
+      XFORCE_SYNC_HOME=1
+      shift
+      ;;
+    --no-home-sync)
+      XFORCE_SYNC_HOME=0
+      shift
+      ;;
+    --sync-venv)
+      XFORCE_SYNC_VENV=1
+      shift
+      ;;
+    --no-venv-sync)
+      XFORCE_SYNC_VENV=0
+      shift
+      ;;
     --)
       shift
       while [ "$#" -gt 0 ]; do
@@ -76,6 +112,9 @@ while [ "$#" -gt 0 ]; do
 done
 
 export XFORCE_SKIP_READY_MARKER XFORCE_DEBUG_BOOT XFORCE_PRINT_ENV XFORCE_SOURCE_BOOT_FRAGMENTS
+export XFORCE_SYNC_PERSISTENCE XFORCE_SYNC_WORKSPACE XFORCE_SYNC_HOME XFORCE_SYNC_VENV
+export XFORCE_PERSISTENCE_STATE_DIR="${XFORCE_PERSISTENCE_STATE_DIR:-${WORKSPACE_DIR}/.xforce-state}"
+export XFORCE_WORKSPACE_SEED_DIR="${XFORCE_WORKSPACE_SEED_DIR:-/opt/xforce-ai/share/workspace-seed}"
 
 if [ "$XFORCE_DEBUG_BOOT" = "1" ]; then
   set -x
