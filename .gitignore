@@ -1,0 +1,50 @@
+# xforce_AI repository hygiene
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments and local package caches
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+
+# Node / portal frontend build artifacts
+node_modules/
+dist/
+build/
+.next/
+.vite/
+coverage/
+
+# Docker / runtime artifacts
+*.log
+logs/
+tmp/
+*.pid
+*.sock
+.provisioner_state/
+workspace/
+models/
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+id_rsa*
+id_ed25519*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
