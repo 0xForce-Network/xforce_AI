@@ -41,10 +41,13 @@ RUN awk '/BEGIN ubuntu-jammy/{in_block=1; next} /END ubuntu-jammy/{in_block=0} i
     && chown -R "${XFORCE_UID}:${XFORCE_GID}" "${WORKSPACE_DIR}" "/home/${XFORCE_USER}" "${VENV_DIR}" \
     && rm -f /tmp/xforce-base-packages.txt /tmp/xforce-python-requirements.txt /tmp/xforce-fastsources.list
 
-COPY docker/common/entrypoint-placeholder.sh /opt/xforce-ai/bin/entrypoint.sh
+COPY docker/common/boot/entrypoint.sh /opt/xforce-ai/bin/entrypoint.sh
+COPY docker/common/boot/boot_default.sh /opt/xforce-ai/bin/boot_default.sh
+COPY docker/common/boot/xforce_ai_boot.d/ /etc/xforce_ai_boot.d/
 COPY docker/common/smoke-test.sh /opt/xforce-ai/bin/smoke-test.sh
 
-RUN chmod 0755 /opt/xforce-ai/bin/entrypoint.sh /opt/xforce-ai/bin/smoke-test.sh
+RUN chmod 0755 /opt/xforce-ai/bin/entrypoint.sh /opt/xforce-ai/bin/boot_default.sh /opt/xforce-ai/bin/smoke-test.sh \
+    && chmod 0644 /etc/xforce_ai_boot.d/*.sh
 
 WORKDIR ${WORKSPACE_DIR}
 ENTRYPOINT ["/usr/bin/tini", "--", "/opt/xforce-ai/bin/entrypoint.sh"]
