@@ -80,6 +80,48 @@ if [ ! -L /venv/main ]; then
   exit 1
 fi
 
+run_nushell_smoke() {
+  if [ "${ENABLE_NUSHELL:-1}" != "1" ]; then
+    if [ -e /usr/local/bin/nu ]; then
+      echo "Nushell binary exists while ENABLE_NUSHELL is disabled" >&2
+      exit 1
+    fi
+    if getent passwd "${XFORCE_USER:-user}" | cut -d: -f7 | grep -qx /usr/local/bin/nu; then
+      echo "user shell is Nushell while ENABLE_NUSHELL is disabled" >&2
+      exit 1
+    fi
+    return 0
+  fi
+
+  if [ ! -x /usr/local/bin/nu ]; then
+    echo "Nushell binary missing or not executable" >&2
+    exit 1
+  fi
+
+  /usr/local/bin/nu --version | grep -q "${NUSHELL_VERSION:-0.113.1}"
+  grep -qxF /usr/local/bin/nu /etc/shells
+
+  user_shell="$(getent passwd "${XFORCE_USER:-user}" | cut -d: -f7)"
+  if [ "$user_shell" != /usr/local/bin/nu ]; then
+    echo "unexpected user shell: $user_shell" >&2
+    exit 1
+  fi
+
+  nushell_config_dir="/home/${XFORCE_USER:-user}/.config/nushell"
+  if [ ! -f "$nushell_config_dir/env.nu" ]; then
+    echo "Nushell env config missing" >&2
+    exit 1
+  fi
+  if [ ! -f "$nushell_config_dir/config.nu" ]; then
+    echo "Nushell config missing" >&2
+    exit 1
+  fi
+
+  /usr/local/bin/nu --no-std-lib --env-config "$nushell_config_dir/env.nu" --config "$nushell_config_dir/config.nu" -c 'if ($env.PATH.0 != "/venv/main/bin") { exit 1 }'
+  /usr/local/bin/nu --no-std-lib --env-config "$nushell_config_dir/env.nu" --config "$nushell_config_dir/config.nu" -c 'show-models | ignore'
+  /usr/local/bin/nu --no-std-lib --env-config "$nushell_config_dir/env.nu" --config "$nushell_config_dir/config.nu" -c 'call-llm "hello" | ignore'
+}
+
 boot_log() {
   level="$1"
   step="$2"
@@ -274,7 +316,8 @@ run_rocm_fixture
 run_workspace_fixture
 run_home_fixture
 run_venv_fixture
+run_nushell_smoke
 
 python3 --version
 /venv/main/bin/python --version
-echo "xforce_AI F005 smoke test passed"
+echo "xforce_AI F006 smoke test passed"

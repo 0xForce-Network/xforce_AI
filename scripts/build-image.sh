@@ -49,6 +49,13 @@ build_args=(
   --build-arg "XFORCE_IMAGE_VERSION=${image_tag}"
 )
 
+for build_arg_name in ENABLE_NUSHELL NUSHELL_VERSION NUSHELL_SHA256_AMD64 NUSHELL_SHA256_ARM64; do
+  build_arg_value="${!build_arg_name:-}"
+  if [ -n "$build_arg_value" ]; then
+    build_args+=(--build-arg "${build_arg_name}=${build_arg_value}")
+  fi
+done
+
 cd "$repo_root"
 
 if docker buildx version >/dev/null 2>&1; then
