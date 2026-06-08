@@ -1,0 +1,2 @@
+# F002 baseline intentionally keeps runtime Python dependencies minimal.
+# F007 will own the declarative provisioner dependency set.

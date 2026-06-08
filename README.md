@@ -28,3 +28,26 @@ The project is planned around the following runtime layers:
 ## Repository Status
 
 This repository was initialized as the implementation root for the F001 Docker base platform bootstrap task.
+
+## F002 Docker Image Matrix
+
+The first implementation scaffold defines three Docker variants:
+
+- `cpu`: local smoke tests and generic non-GPU tooling
+- `nvidia`: CUDA GPU workloads
+- `rocm`: AMD ROCm GPU workloads
+
+Runtime-owned paths use xforce names only:
+
+- `/opt/xforce-ai/`
+- `/etc/xforce_ai_boot.d/`
+- `/workspace/`
+- `/venv/main/`
+
+Build entrypoints:
+
+```bash
+scripts/build-image.sh cpu
+scripts/build-image.sh nvidia
+scripts/build-image.sh rocm
+```

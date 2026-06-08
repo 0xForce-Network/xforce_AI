@@ -1,0 +1,31 @@
+.git/
+.gitignore
+.dockerignore
+
+# Local development artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+node_modules/
+dist/
+build/
+.next/
+coverage/
+
+# Runtime artifacts and secrets
+*.log
+logs/
+tmp/
+.env
+.env.*
+*.pem
+*.key
+*.crt
+id_rsa*
+id_ed25519*
+models/
+workspace/

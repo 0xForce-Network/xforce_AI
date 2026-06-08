@@ -1,0 +1,24 @@
+# Synced from mainnet/fastsources.list for faster Ubuntu Jammy package installs.
+# BEGIN ubuntu-jammy
+deb http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ jammy main restricted universe multiverse
+
+deb http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ jammy-security main restricted universe multiverse
+
+deb http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ jammy-updates main restricted universe multiverse
+
+deb http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
+deb-src http://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
+# END ubuntu-jammy
+
+# BEGIN debian-bookworm
+deb http://mirrors.aliyun.com/debian/ bookworm main contrib non-free non-free-firmware
+deb http://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://mirrors.aliyun.com/debian/ bookworm-updates main contrib non-free non-free-firmware
+# END debian-bookworm
+
+# BEGIN debian-bullseye-compat
+deb http://mirrors.aliyun.com/debian/ bullseye main contrib non-free
+# END debian-bullseye-compat
