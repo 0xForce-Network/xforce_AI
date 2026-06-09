@@ -1,7 +1,8 @@
-ARG CUDA_VERSION=12.4.1
-ARG UBUNTU_VERSION=22.04
+ARG CUDA_VERSION=12.8.1
+ARG UBUNTU_VERSION=24.04
 FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
 
+ARG UBUNTU_VERSION=24.04
 ARG PYTHON_VERSION=3.12
 ARG TARGETARCH
 ARG XFORCE_USER=user
@@ -12,6 +13,7 @@ ARG VENV_DIR=/venv/main
 ARG ENABLE_NUSHELL=1
 ARG ENABLE_PORTAL=1
 ARG ENABLE_CLOUDFLARED=0
+ARG ENABLE_FASTSOURCES=0
 ARG XFORCE_IMAGE_VERSION=dev
 ARG XFORCE_IMAGE_REVISION=unknown
 ARG XFORCE_IMAGE_SOURCE=https://github.com/xforce-ai/xforce-ai
@@ -22,7 +24,7 @@ ARG NUSHELL_SHA256_ARM64=08b94c6fd9c66881616df4c89adc03e8a42a57fdf6876cfd1b16cec
 ARG CLOUDFLARED_VERSION=2025.6.0
 ARG CLOUDFLARED_SHA256_AMD64=
 ARG CLOUDFLARED_SHA256_ARM64=
-ARG CUDA_VERSION=12.4.1
+ARG CUDA_VERSION=12.8.1
 
 ENV DEBIAN_FRONTEND=noninteractive \
     XFORCE_IMAGE_VARIANT=nvidia \
@@ -30,6 +32,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     XFORCE_USER=${XFORCE_USER} \
     ENABLE_NUSHELL=${ENABLE_NUSHELL} \
     ENABLE_CLOUDFLARED=${ENABLE_CLOUDFLARED} \
+    ENABLE_FASTSOURCES=${ENABLE_FASTSOURCES} \
     NUSHELL_VERSION=${NUSHELL_VERSION} \
     WORKSPACE_DIR=${WORKSPACE_DIR} \
     VENV_DIR=${VENV_DIR} \
@@ -66,13 +69,23 @@ COPY docker/common/xforce-portal /tmp/xforce-portal
 COPY docker/common/xforce-caddy /tmp/xforce-caddy
 COPY docker/common/xforce-tunnel /tmp/xforce-tunnel
 
-RUN awk '/BEGIN ubuntu-jammy/{in_block=1; next} /END ubuntu-jammy/{in_block=0} in_block && /^deb /{print}' /tmp/xforce-fastsources.list > /etc/apt/sources.list \
-    && rm -f /etc/apt/sources.list.d/ubuntu.sources \
-    && apt-get update \
-    && grep -vE '^\s*(#|$)' /tmp/xforce-base-packages.txt | xargs apt-get install -y --no-install-recommends \
+RUN apt_opts='-o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::ForceIPv4=true' \
+    && if [ "${ENABLE_FASTSOURCES}" = "1" ]; then \
+    case "${UBUNTU_VERSION}" in \
+    22.04) ubuntu_suite=jammy ;; \
+    24.04) ubuntu_suite=noble ;; \
+    *) echo "unsupported Ubuntu version: ${UBUNTU_VERSION}" >&2; exit 2 ;; \
+    esac \
+    && awk "/BEGIN ubuntu-${ubuntu_suite}/{in_block=1; next} /END ubuntu-${ubuntu_suite}/{in_block=0} in_block && /^deb /{print}" /tmp/xforce-fastsources.list > /etc/apt/sources.list \
+    && rm -f /etc/apt/sources.list.d/ubuntu.sources; \
+    fi \
+    && apt-get ${apt_opts} update \
+    && grep -vE '^\s*(#|$)' /tmp/xforce-base-packages.txt | xargs apt-get ${apt_opts} install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid "${XFORCE_GID}" "${XFORCE_USER}" \
-    && useradd --uid "${XFORCE_UID}" --gid "${XFORCE_GID}" --create-home --shell /bin/bash "${XFORCE_USER}" \
+    && xforce_group="$(getent group "${XFORCE_GID}" | cut -d: -f1 || true)" \
+    && if [ -z "${xforce_group}" ]; then groupadd --gid "${XFORCE_GID}" "${XFORCE_USER}"; elif [ "${xforce_group}" != "${XFORCE_USER}" ]; then groupmod --new-name "${XFORCE_USER}" "${xforce_group}"; fi \
+    && xforce_user="$(getent passwd "${XFORCE_UID}" | cut -d: -f1 || true)" \
+    && if [ -z "${xforce_user}" ]; then useradd --uid "${XFORCE_UID}" --gid "${XFORCE_USER}" --create-home --home-dir "/home/${XFORCE_USER}" --shell /bin/bash "${XFORCE_USER}"; elif [ "${xforce_user}" != "${XFORCE_USER}" ]; then usermod --login "${XFORCE_USER}" --home "/home/${XFORCE_USER}" --move-home --shell /bin/bash "${xforce_user}"; else usermod --home "/home/${XFORCE_USER}" --move-home --shell /bin/bash "${XFORCE_USER}"; fi \
     && mkdir -p /opt/xforce-ai/bin /opt/xforce-ai/lib /opt/xforce-ai/share/workspace-seed /opt/xforce-ai/share/provisioner/examples /opt/portal-aio /etc/xforce-ai/caddy /etc/caddy /etc/xforce_ai_boot.d /etc/supervisor/conf.d "${WORKSPACE_DIR}" "${VENV_DIR}" \
     && python3 -m venv "${VENV_DIR}" \
     && if grep -vE '^\s*(#|$)' /tmp/xforce-python-requirements.txt | grep -q .; then "${VENV_DIR}/bin/pip" install --no-cache-dir --upgrade -r /tmp/xforce-python-requirements.txt; fi \

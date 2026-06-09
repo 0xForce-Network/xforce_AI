@@ -52,6 +52,10 @@ scripts/build-image.sh nvidia
 scripts/build-image.sh rocm
 ```
 
+Release builds use each upstream base image's default package sources by default. Set
+`ENABLE_FASTSOURCES=1` only for local or test-environment builds that need mirror
+acceleration.
+
 ## Release pipeline
 
 F011 adds a GitHub Actions release pipeline for multi-arch Buildx publishing to GHCR with an optional Docker Hub mirror.

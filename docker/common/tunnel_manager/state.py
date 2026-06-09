@@ -10,7 +10,7 @@ from caddy_manager.auth import mask_secret
 def masked_command(command: list[str], secret: str | None = None) -> list[str]:
     if not secret:
         return command
-    return [mask_secret(item) if item == secret else item for item in command]
+    return ["***MASKED***" if item == secret else item for item in command]
 
 
 def write_state(state_dir: Path, payload: dict[str, Any]) -> None:
