@@ -20,10 +20,10 @@ The interactive shell presented to the user (via SSH or the Web Terminal console
 
 ---
 
-### Decision 2: UI/UX Redesign Style - CoinCync Cream Theme
+### Decision 2: UI/UX Redesign Style - Claude Cream Theme
 
 #### Description
-Completely abandon traditional dark/neon console themes. All graphical web interfaces (Instance Portal dashboard, metrics meters, terminal wrappers) must conform to the `CoinCync Cream` visual style.
+Completely abandon traditional dark/neon console themes. All graphical web interfaces (Instance Portal dashboard, metrics meters, terminal wrappers) must conform to the `Claude Cream` visual style.
 
 #### Rationale
 * **Brand Consistency**: Aligns with the core visual identity of xforce workspace style.
@@ -106,7 +106,6 @@ Maintain a structured "Model Requirements Registry" mapping each AI model templa
 
 #### Date
 2026-06-08
-
 
 
 

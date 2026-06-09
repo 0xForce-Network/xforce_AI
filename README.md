@@ -14,7 +14,7 @@ The project is planned around the following runtime layers:
 - native PTY process wrapper and log pipeline
 - Supervisor-managed services
 - Caddy reverse proxy and Cloudflare tunnel support
-- FastAPI Instance Portal using the CoinCync Cream visual language
+- FastAPI Instance Portal using the Claude Cream visual language
 - CI image publishing to GHCR with Docker Hub mirror support
 - GPU hardware-in-the-loop validation and model-to-GPU scheduling readiness
 

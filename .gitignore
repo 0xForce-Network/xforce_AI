@@ -43,6 +43,7 @@ models/
 id_rsa*
 id_ed25519*
 test/
+docs/
 
 # OS / editor noise
 .DS_Store
