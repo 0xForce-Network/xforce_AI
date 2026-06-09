@@ -18,6 +18,10 @@ XFORCE_SYNC_VENV="${XFORCE_SYNC_VENV:-auto}"
 XFORCE_PROVISION_ON_BOOT="${XFORCE_PROVISION_ON_BOOT:-auto}"
 XFORCE_PROVISION_MANIFEST="${XFORCE_PROVISION_MANIFEST:-}"
 XFORCE_PROVISION_STATE_DIR="${XFORCE_PROVISION_STATE_DIR:-/.provisioner_state}"
+XFORCE_SUPERVISOR_ON_BOOT="${XFORCE_SUPERVISOR_ON_BOOT:-auto}"
+XFORCE_PORTAL_ON_BOOT="${XFORCE_PORTAL_ON_BOOT:-auto}"
+XFORCE_PORTAL_HOST="${XFORCE_PORTAL_HOST:-127.0.0.1}"
+XFORCE_PORTAL_PORT="${XFORCE_PORTAL_PORT:-8080}"
 
 export XFORCE_BOOT_ROOT XFORCE_BOOT_DIR XFORCE_BOOT_STATE_DIR XFORCE_BOOT_STARTED_AT
 export XFORCE_IMAGE_VARIANT="${XFORCE_IMAGE_VARIANT:-unknown}"
@@ -125,6 +129,38 @@ while [ "$#" -gt 0 ]; do
       XFORCE_PROVISION_STATE_DIR="$2"
       shift 2
       ;;
+    --supervisor)
+      XFORCE_SUPERVISOR_ON_BOOT=1
+      shift
+      ;;
+    --no-supervisor)
+      XFORCE_SUPERVISOR_ON_BOOT=0
+      shift
+      ;;
+    --portal)
+      XFORCE_PORTAL_ON_BOOT=1
+      shift
+      ;;
+    --no-portal)
+      XFORCE_PORTAL_ON_BOOT=0
+      shift
+      ;;
+    --portal-host)
+      if [ "$#" -lt 2 ]; then
+        boot_log error args "missing value for --portal-host"
+        exit 2
+      fi
+      XFORCE_PORTAL_HOST="$2"
+      shift 2
+      ;;
+    --portal-port)
+      if [ "$#" -lt 2 ]; then
+        boot_log error args "missing value for --portal-port"
+        exit 2
+      fi
+      XFORCE_PORTAL_PORT="$2"
+      shift 2
+      ;;
     --)
       shift
       while [ "$#" -gt 0 ]; do
@@ -142,6 +178,7 @@ done
 export XFORCE_SKIP_READY_MARKER XFORCE_DEBUG_BOOT XFORCE_PRINT_ENV XFORCE_SOURCE_BOOT_FRAGMENTS
 export XFORCE_SYNC_PERSISTENCE XFORCE_SYNC_WORKSPACE XFORCE_SYNC_HOME XFORCE_SYNC_VENV
 export XFORCE_PROVISION_ON_BOOT XFORCE_PROVISION_MANIFEST XFORCE_PROVISION_STATE_DIR
+export XFORCE_SUPERVISOR_ON_BOOT XFORCE_PORTAL_ON_BOOT XFORCE_PORTAL_HOST XFORCE_PORTAL_PORT
 export XFORCE_PERSISTENCE_STATE_DIR="${XFORCE_PERSISTENCE_STATE_DIR:-${WORKSPACE_DIR}/.xforce-state}"
 export XFORCE_WORKSPACE_SEED_DIR="${XFORCE_WORKSPACE_SEED_DIR:-/opt/xforce-ai/share/workspace-seed}"
 

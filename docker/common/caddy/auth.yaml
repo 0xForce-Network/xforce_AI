@@ -1,0 +1,9 @@
+apiVersion: xforce.ai/auth/v1
+auth:
+  token: ""
+  cookieName: xforce_session
+  cookieSecret: ""
+  bearerEnabled: true
+  headerName: X-XForce-Token
+  queryName: token
+  cookieTtlSeconds: 86400

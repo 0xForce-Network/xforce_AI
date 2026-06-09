@@ -17,8 +17,26 @@ required_paths=(
   /opt/xforce-ai/share/workspace-seed
   /opt/xforce-ai/share/provisioner/examples/provisioning.example.yaml
   /opt/xforce-ai/lib/provisioner
+  /opt/xforce-ai/lib/pty_wrapper
   /opt/xforce-ai/bin/xforce-provision
+  /opt/xforce-ai/bin/xforce-pty-wrap
+  /opt/xforce-ai/bin/xforce-portal
+  /opt/xforce-ai/bin/xforce-caddy
+  /opt/xforce-ai/bin/xforce-tunnel
   /opt/xforce-ai/bin/provisioner-smoke-test.sh
+  /opt/xforce-ai/bin/pty-wrapper-smoke-test.sh
+  /opt/xforce-ai/bin/portal-smoke-test.sh
+  /opt/xforce-ai/bin/caddy-tunnel-smoke-test.sh
+  /opt/portal-aio/portal
+  /opt/portal-aio/caddy_manager
+  /opt/portal-aio/tunnel_manager
+  /etc/supervisor/supervisord.conf
+  /etc/supervisor/conf.d/00-portal-backend.conf
+  /etc/supervisor/conf.d/20-caddy.conf
+  /etc/supervisor/conf.d/30-cloudflared.conf
+  /etc/xforce-ai/services.yaml
+  /etc/xforce-ai/caddy/routes.yaml
+  /etc/xforce-ai/caddy/auth.yaml
   /etc/supervisor/conf.d
   /venv/main
   /workspace
@@ -49,6 +67,41 @@ fi
 
 if [ ! -x /opt/xforce-ai/bin/provisioner-smoke-test.sh ]; then
   echo "provisioner smoke test is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/xforce-pty-wrap ]; then
+  echo "PTY wrapper is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/pty-wrapper-smoke-test.sh ]; then
+  echo "PTY wrapper smoke test is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/xforce-portal ]; then
+  echo "Portal CLI is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/portal-smoke-test.sh ]; then
+  echo "Portal smoke test is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/xforce-caddy ]; then
+  echo "Caddy manager CLI is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/xforce-tunnel ]; then
+  echo "Tunnel manager CLI is not executable" >&2
+  exit 1
+fi
+
+if [ ! -x /opt/xforce-ai/bin/caddy-tunnel-smoke-test.sh ]; then
+  echo "Caddy/tunnel smoke test is not executable" >&2
   exit 1
 fi
 
@@ -339,7 +392,10 @@ run_home_fixture
 run_venv_fixture
 run_nushell_smoke
 /opt/xforce-ai/bin/provisioner-smoke-test.sh
+/opt/xforce-ai/bin/pty-wrapper-smoke-test.sh
+/opt/xforce-ai/bin/portal-smoke-test.sh
+/opt/xforce-ai/bin/caddy-tunnel-smoke-test.sh
 
 python3 --version
 /venv/main/bin/python --version
-echo "xforce_AI F006 smoke test passed"
+echo "xforce_AI F010 smoke test passed"

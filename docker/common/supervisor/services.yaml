@@ -1,0 +1,35 @@
+apiVersion: xforce.ai/services/v1
+services:
+  - name: portal-backend
+    supervisorName: portal-backend
+    title: Instance Portal Backend
+    category: core
+    protected: true
+    autostart: true
+    logMode: supervisor
+    description: Local FastAPI control backend.
+  - name: caddy
+    supervisorName: caddy
+    title: Caddy Reverse Proxy
+    category: core
+    protected: true
+    autostart: false
+    logMode: supervisor
+    description: Local authenticated reverse proxy surface.
+  - name: cloudflared
+    supervisorName: cloudflared
+    title: Cloudflare Tunnel
+    category: network
+    protected: false
+    autostart: false
+    logMode: supervisor
+    description: Optional quick or named Cloudflare tunnel process.
+  - name: example-pty-service
+    supervisorName: example-pty-service
+    title: Example PTY Service
+    category: fixture
+    protected: false
+    autostart: false
+    logMode: pty
+    ptyRunId: example-pty-service
+    description: Disabled fixture service for lifecycle smoke tests.

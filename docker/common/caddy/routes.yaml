@@ -1,0 +1,22 @@
+apiVersion: xforce.ai/routes/v1
+routes:
+  - id: portal
+    match: /
+    upstream: http://127.0.0.1:8080
+    auth: required
+    preserveHost: true
+  - id: portal-api
+    match: /api/*
+    upstream: http://127.0.0.1:8080
+    auth: required
+    preserveHost: true
+  - id: health
+    match: /healthz
+    upstream: http://127.0.0.1:8080/api/v1/health
+    auth: excluded
+    preserveHost: true
+  - id: example-service
+    match: /services/example/*
+    upstream: http://127.0.0.1:18080
+    auth: required
+    preserveHost: false

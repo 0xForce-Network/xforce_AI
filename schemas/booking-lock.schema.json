@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "xforce.ai booking lock",
+    "type": "object",
+    "required": [
+        "lock_id",
+        "request_id",
+        "node_id",
+        "device_fingerprint",
+        "expires_at",
+        "state"
+    ],
+    "properties": {
+        "lock_id": {
+            "type": "string"
+        },
+        "state": {
+            "type": "string"
+        }
+    }
+}

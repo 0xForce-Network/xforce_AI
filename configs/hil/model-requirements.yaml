@@ -1,0 +1,83 @@
+{
+  "apiVersion": "xforce.ai/model-requirements/v1",
+  "models": [
+    {
+      "model_id": "tiny-llm-smoke",
+      "display_name": "Tiny LLM Smoke",
+      "workload_type": "text_generation",
+      "image": {
+        "reference": "ghcr.io/xforce-ai/apps/tiny-llm-smoke",
+        "variant_preference": ["nvidia", "rocm", "cpu"],
+        "min_xforce_ai_version": "v0.12.0"
+      },
+      "hardware": {
+        "min_vram_gb": 4,
+        "recommended_vram_gb": 8,
+        "min_system_ram_gb": 8,
+        "min_disk_gb": 20,
+        "min_compute_capability": 7.0,
+        "allowed_gpu_vendors": ["nvidia", "rocm"],
+        "preferred_gpu_models": ["NVIDIA GeForce RTX 4090", "AMD Radeon PRO W7900"],
+        "excluded_gpu_models": [],
+        "multi_gpu_allowed": false,
+        "required_features": ["fp16"]
+      },
+      "runtime": {"cuda": ">=12.1", "rocm": ">=6.0", "pytorch": ">=2.3"},
+      "scheduling": {
+        "strategy": "lowest_price_certified",
+        "fallback_policy": "allow_recommended_to_minimum",
+        "max_candidates": 5,
+        "require_fresh_certification_days": 30
+      }
+    },
+    {
+      "model_id": "stable-diffusion-xl",
+      "display_name": "Stable Diffusion XL",
+      "workload_type": "image_generation",
+      "image": {
+        "reference": "ghcr.io/xforce-ai/apps/sdxl",
+        "variant_preference": ["nvidia", "rocm"],
+        "min_xforce_ai_version": "v0.12.0"
+      },
+      "hardware": {
+        "min_vram_gb": 16,
+        "recommended_vram_gb": 24,
+        "min_system_ram_gb": 16,
+        "min_disk_gb": 40,
+        "min_compute_capability": 8.0,
+        "allowed_gpu_vendors": ["nvidia"],
+        "preferred_gpu_models": ["NVIDIA GeForce RTX 4090", "NVIDIA L40S"],
+        "excluded_gpu_models": [],
+        "multi_gpu_allowed": false,
+        "required_features": ["fp16", "tensor_cores"]
+      },
+      "runtime": {"cuda": ">=12.1", "rocm": null, "pytorch": ">=2.3"},
+      "scheduling": {
+        "strategy": "lowest_price_certified",
+        "fallback_policy": "allow_recommended_to_minimum",
+        "max_candidates": 5,
+        "require_fresh_certification_days": 30
+      }
+    },
+    {
+      "model_id": "giant-vram-model",
+      "display_name": "Giant VRAM Fixture Model",
+      "workload_type": "benchmark",
+      "image": {"reference": "ghcr.io/xforce-ai/apps/giant-vram", "variant_preference": ["nvidia"]},
+      "hardware": {
+        "min_vram_gb": 96,
+        "recommended_vram_gb": 128,
+        "min_system_ram_gb": 64,
+        "min_disk_gb": 200,
+        "min_compute_capability": 9.0,
+        "allowed_gpu_vendors": ["nvidia"],
+        "preferred_gpu_models": ["NVIDIA H100 PCIe"],
+        "excluded_gpu_models": [],
+        "multi_gpu_allowed": false,
+        "required_features": ["fp16", "bf16", "tensor_cores"]
+      },
+      "runtime": {"cuda": ">=12.4", "rocm": null, "pytorch": ">=2.4"},
+      "scheduling": {"strategy": "lowest_price_certified", "fallback_policy": "queue_until_available", "max_candidates": 5, "require_fresh_certification_days": 30}
+    }
+  ]
+}

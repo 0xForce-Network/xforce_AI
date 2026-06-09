@@ -51,3 +51,30 @@ scripts/build-image.sh cpu
 scripts/build-image.sh nvidia
 scripts/build-image.sh rocm
 ```
+
+## Release pipeline
+
+F011 adds a GitHub Actions release pipeline for multi-arch Buildx publishing to GHCR with an optional Docker Hub mirror.
+
+Useful local helpers:
+
+```bash
+make preflight
+IMAGE_TAG=v1.2.3 make print-tags
+IMAGE_TAG=v0.0.0-test VARIANTS=cpu,nvidia,rocm PLATFORMS=linux/amd64 PUSH=0 make release-dry-run
+```
+
+Release procedure and required secrets are documented in `docs/release.md`.
+
+## GPU HIL and scheduling readiness
+
+F012 adds a fixture-backed HIL orchestrator and model scheduler readiness layer:
+
+```bash
+make hil-validate
+make hil-smoke
+make scheduler-smoke
+python3 -m hil_orchestrator preflight --model-id stable-diffusion-xl --max-price-per-hour 1.0
+```
+
+Operational details are documented in `docs/hil-validation.md` and `docs/model-scheduling.md`.

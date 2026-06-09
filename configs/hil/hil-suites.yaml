@@ -1,0 +1,42 @@
+{
+  "apiVersion": "xforce.ai/hil-suites/v1",
+  "suites": [
+    {
+      "suite_id": "nvidia-base-ai-smoke",
+      "variant": "nvidia",
+      "required": true,
+      "timeout_seconds": 900,
+      "required_features": {"cuda": ">=12.1", "compute_capability": ">=8.0", "min_vram_gb": 16},
+      "steps": [
+        {"id": "docker_boot", "runner": "docker_smoke", "required": true, "fixture_status": "passed"},
+        {"id": "portal_health", "runner": "portal_smoke", "required": true, "fixture_status": "passed"},
+        {"id": "cuda_tensor", "runner": "cuda_smoke", "required": true, "fixture_status": "passed"},
+        {"id": "pytorch_tensor", "runner": "pytorch_smoke", "required": true, "fixture_status": "passed"},
+        {"id": "benchmark", "runner": "benchmark_smoke", "required": false, "fixture_status": "passed"},
+        {"id": "artifact_compile", "runner": "compile_artifact", "required": false, "fixture_status": "passed"}
+      ]
+    },
+    {
+      "suite_id": "miner-activation-basic",
+      "variant": "nvidia",
+      "required": true,
+      "timeout_seconds": 600,
+      "required_features": {"min_vram_gb": 8},
+      "steps": [
+        {"id": "identity_check", "runner": "fixture_identity", "required": true, "fixture_status": "passed"},
+        {"id": "metrics_visibility", "runner": "portal_smoke", "required": true, "fixture_status": "passed"},
+        {"id": "optional_benchmark", "runner": "benchmark_smoke", "required": false, "fixture_status": "failed"}
+      ]
+    },
+    {
+      "suite_id": "fixture-required-failure",
+      "variant": "nvidia",
+      "required": true,
+      "timeout_seconds": 60,
+      "required_features": {"min_vram_gb": 8},
+      "steps": [
+        {"id": "required_fail", "runner": "fixture", "required": true, "fixture_status": "failed"}
+      ]
+    }
+  ]
+}

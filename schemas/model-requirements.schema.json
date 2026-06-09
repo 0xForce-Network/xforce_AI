@@ -1,0 +1,16 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "xforce.ai model requirements",
+    "type": "object",
+    "required": [
+        "models"
+    ],
+    "properties": {
+        "apiVersion": {
+            "type": "string"
+        },
+        "models": {
+            "type": "array"
+        }
+    }
+}

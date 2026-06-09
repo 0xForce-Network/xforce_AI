@@ -1,0 +1,22 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "xforce.ai hil report",
+    "type": "object",
+    "required": [
+        "report_id",
+        "status",
+        "certification_state",
+        "steps"
+    ],
+    "properties": {
+        "apiVersion": {
+            "type": "string"
+        },
+        "report_id": {
+            "type": "string"
+        },
+        "status": {
+            "type": "string"
+        }
+    }
+}

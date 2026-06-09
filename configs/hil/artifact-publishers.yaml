@@ -1,0 +1,8 @@
+{
+  "apiVersion": "xforce.ai/artifact-publishers/v1",
+  "publishers": [
+    {"publisher_id": "local", "type": "local", "root": "/tmp/xforce-ai/hil/artifacts"},
+    {"publisher_id": "oci-dry-run", "type": "oci", "mode": "dry-run"},
+    {"publisher_id": "disabled", "type": "disabled"}
+  ]
+}
