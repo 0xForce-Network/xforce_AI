@@ -72,6 +72,31 @@ Release procedure and required secrets are documented in `docs/release.md`.
 
 ## GPU HIL and scheduling readiness
 
+## Deploy-time Docker resource profiles
+
+xforce_AI based app images can share the Docker resource profile helper at `scripts/docker-resource-profile.sh` from their host-side deployment scripts. The helper is intentionally deploy-time only: it turns package/quote tiers into Docker run flags and read-only container metadata, rather than allowing an end user to resize a running container from the Portal.
+
+Supported built-in profiles are:
+
+- `custom`: use only explicit variables.
+- `gpu-small`: 4 CPU threads, 16g memory, 4g shm, 4096 PID limit, all GPUs, 80G writable layer hint.
+- `gpu-pro`: 8 CPU threads, 32g memory, 8g shm, 8192 PID limit, all GPUs, 160G writable layer hint.
+- `gpu-studio`: 16 CPU threads, 64g memory, 16g shm, 16384 PID limit, all GPUs, 320G writable layer hint.
+
+Override variables:
+
+- `XFORCE_DOCKER_RESOURCE_PROFILE`
+- `XFORCE_DOCKER_CPUS`
+- `XFORCE_DOCKER_CPUSET_CPUS`
+- `XFORCE_DOCKER_MEMORY`
+- `XFORCE_DOCKER_MEMORY_SWAP`
+- `XFORCE_DOCKER_SHM_SIZE`
+- `XFORCE_DOCKER_PIDS_LIMIT`
+- `XFORCE_DOCKER_GPUS`
+- `XFORCE_DOCKER_STORAGE_SIZE`
+
+`XFORCE_DOCKER_STORAGE_SIZE` maps to Docker `--storage-opt size=...` and requires a compatible Docker storage driver. Deployment scripts should leave it empty for hosts that do not support per-container writable-layer quotas.
+
 F012 adds a fixture-backed HIL orchestrator and model scheduler readiness layer:
 
 ```bash

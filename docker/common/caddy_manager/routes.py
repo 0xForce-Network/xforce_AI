@@ -15,7 +15,13 @@ class Route:
     upstream: str
     auth: str = "required"
     preserve_host: bool = True
+    strip_prefix: str = ""
     description: str = ""
+    flush_interval: str = ""
+    read_timeout: str = ""
+    write_timeout: str = ""
+    dial_timeout: str = ""
+    keepalive: str = ""
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> "Route":
@@ -33,7 +39,13 @@ class Route:
             upstream=upstream,
             auth=auth,
             preserve_host=bool(data.get("preserveHost", True)),
+            strip_prefix=str(data.get("stripPrefix") or data.get("strip_prefix") or "").strip(),
             description=str(data.get("description") or ""),
+            flush_interval=str(data.get("flushInterval") or data.get("flush_interval") or "").strip(),
+            read_timeout=str(data.get("readTimeout") or data.get("read_timeout") or "").strip(),
+            write_timeout=str(data.get("writeTimeout") or data.get("write_timeout") or "").strip(),
+            dial_timeout=str(data.get("dialTimeout") or data.get("dial_timeout") or "").strip(),
+            keepalive=str(data.get("keepAlive") or data.get("keepalive") or "").strip(),
         )
 
     @property
@@ -57,6 +69,7 @@ class Route:
 def default_routes(portal_upstream: str = "http://127.0.0.1:8080") -> list[Route]:
     return [
         Route(id="health", match="/healthz", upstream=f"{portal_upstream}/api/v1/health", auth="excluded", preserve_host=True),
+        Route(id="root-user-css", match="/user.css", upstream="http://127.0.0.1:8188/api/userdata/user.css", auth="excluded", preserve_host=True),
         Route(id="portal-api", match="/api/*", upstream=portal_upstream, auth="required", preserve_host=True),
         Route(id="example-service", match="/services/example/*", upstream="http://127.0.0.1:18080", auth="required", preserve_host=False),
         Route(id="portal", match="/", upstream=portal_upstream, auth="required", preserve_host=True),

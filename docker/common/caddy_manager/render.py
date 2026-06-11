@@ -86,9 +86,24 @@ def render_caddyfile(routes: list[Route], http_addr: str, admin_addr: str, auth_
                 "\t\t\tcopy_headers Set-Cookie",
                 "\t\t}",
             ])
+        if route.strip_prefix:
+            lines.append(f"\t\turi strip_prefix {route.strip_prefix}")
         if route.upstream_path:
             lines.append(f"\t\trewrite * {route.upstream_path}")
         lines.append(f"\t\treverse_proxy {route.upstream_base} {{")
+        if route.flush_interval:
+            lines.append(f"\t\t\tflush_interval {route.flush_interval}")
+        if route.read_timeout or route.write_timeout or route.dial_timeout or route.keepalive:
+            lines.append("\t\t\ttransport http {")
+            if route.read_timeout:
+                lines.append(f"\t\t\t\tread_timeout {route.read_timeout}")
+            if route.write_timeout:
+                lines.append(f"\t\t\t\twrite_timeout {route.write_timeout}")
+            if route.dial_timeout:
+                lines.append(f"\t\t\t\tdial_timeout {route.dial_timeout}")
+            if route.keepalive:
+                lines.append(f"\t\t\t\tkeepalive {route.keepalive}")
+            lines.append("\t\t\t}")
         lines.append("\t\t\theader_up X-Forwarded-Proto {scheme}")
         lines.append("\t\t\theader_up X-Request-Id {http.request.header.X-Request-Id}")
         if not route.preserve_host:

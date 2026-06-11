@@ -21,6 +21,9 @@ ARG XFORCE_IMAGE_CREATED=unknown
 ARG NUSHELL_VERSION=0.113.1
 ARG NUSHELL_SHA256_AMD64=9008d309aaa35e29ed5d5985306a83e2bf5093e31677d4cd969914552d12b8fb
 ARG NUSHELL_SHA256_ARM64=08b94c6fd9c66881616df4c89adc03e8a42a57fdf6876cfd1b16cec7e82348b4
+ARG CADDY_VERSION=2.11.4
+ARG CADDY_SHA512_AMD64=8220d1f013b6f27510247b2360c9e0ca9f018feebd82515f07635318b34ff9777ccc8fd0b6e6f2486ce3a33fe389fbb7db12d05baa474f4587509fb4f5ebf1c9
+ARG CADDY_SHA512_ARM64=d5a7c423853c24a799765e0e8210d5c7c22a8f56ed37a3cae2fb9f58be138853c02b4efd6b59d576e6d8c7c0d30b9c1592deeaa6a536ff69bcca23b8c1ea709c
 ARG CLOUDFLARED_VERSION=2025.6.0
 ARG CLOUDFLARED_SHA256_AMD64=
 ARG CLOUDFLARED_SHA256_ARM64=
@@ -34,6 +37,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ENABLE_CLOUDFLARED=${ENABLE_CLOUDFLARED} \
     ENABLE_FASTSOURCES=${ENABLE_FASTSOURCES} \
     NUSHELL_VERSION=${NUSHELL_VERSION} \
+    CADDY_VERSION=${CADDY_VERSION} \
     WORKSPACE_DIR=${WORKSPACE_DIR} \
     VENV_DIR=${VENV_DIR} \
     CUDA_VERSION=${CUDA_VERSION} \
@@ -55,6 +59,7 @@ COPY docker/common/base-packages.txt /tmp/xforce-base-packages.txt
 COPY docker/common/python-requirements.txt /tmp/xforce-python-requirements.txt
 COPY docker/common/fastsources.list /tmp/xforce-fastsources.list
 COPY docker/common/install-nushell.sh /tmp/xforce-install-nushell.sh
+COPY docker/common/install-caddy.sh /tmp/xforce-install-caddy.sh
 COPY docker/common/nushell/ /tmp/xforce-nushell/
 COPY docker/common/provisioner/ /tmp/xforce-provisioner/
 COPY docker/common/xforce-provision /tmp/xforce-provision
@@ -105,9 +110,10 @@ RUN apt_opts='-o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::htt
     && cp /tmp/xforce-caddy /opt/xforce-ai/bin/xforce-caddy \
     && cp /tmp/xforce-tunnel /opt/xforce-ai/bin/xforce-tunnel \
     && chmod 0755 /opt/xforce-ai/bin/xforce-provision /opt/xforce-ai/bin/xforce-pty-wrap /opt/xforce-ai/bin/xforce-portal /opt/xforce-ai/bin/xforce-caddy /opt/xforce-ai/bin/xforce-tunnel \
+    && CADDY_VERSION="${CADDY_VERSION}" CADDY_SHA512_AMD64="${CADDY_SHA512_AMD64}" CADDY_SHA512_ARM64="${CADDY_SHA512_ARM64}" bash /tmp/xforce-install-caddy.sh \
     && if [ "${ENABLE_NUSHELL}" = "1" ]; then bash /tmp/xforce-install-nushell.sh && { grep -qxF /usr/local/bin/nu /etc/shells || printf '%s\n' /usr/local/bin/nu >> /etc/shells; } && usermod --shell /usr/local/bin/nu "${XFORCE_USER}" && mkdir -p "/home/${XFORCE_USER}/.config/nushell" && cp -a /tmp/xforce-nushell/. "/home/${XFORCE_USER}/.config/nushell/"; fi \
     && chown -R "${XFORCE_UID}:${XFORCE_GID}" "${WORKSPACE_DIR}" "/home/${XFORCE_USER}" "${VENV_DIR}" \
-    && rm -rf /tmp/xforce-base-packages.txt /tmp/xforce-python-requirements.txt /tmp/xforce-fastsources.list /tmp/xforce-install-nushell.sh /tmp/xforce-nushell /tmp/xforce-provisioner /tmp/xforce-provision /tmp/xforce-pty-wrapper /tmp/xforce-pty-wrap /tmp/xforce-portal-package /tmp/xforce-caddy-manager /tmp/xforce-tunnel-manager /tmp/xforce-caddy-config /tmp/xforce-supervisor /tmp/xforce-portal /tmp/xforce-caddy /tmp/xforce-tunnel
+    && rm -rf /tmp/xforce-base-packages.txt /tmp/xforce-python-requirements.txt /tmp/xforce-fastsources.list /tmp/xforce-install-nushell.sh /tmp/xforce-install-caddy.sh /tmp/xforce-nushell /tmp/xforce-provisioner /tmp/xforce-provision /tmp/xforce-pty-wrapper /tmp/xforce-pty-wrap /tmp/xforce-portal-package /tmp/xforce-caddy-manager /tmp/xforce-tunnel-manager /tmp/xforce-caddy-config /tmp/xforce-supervisor /tmp/xforce-portal /tmp/xforce-caddy /tmp/xforce-tunnel
 
 COPY docker/common/boot/entrypoint.sh /opt/xforce-ai/bin/entrypoint.sh
 COPY docker/common/boot/boot_default.sh /opt/xforce-ai/bin/boot_default.sh

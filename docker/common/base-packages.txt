@@ -1,6 +1,5 @@
 bash
 ca-certificates
-caddy
 curl
 git
 jq
