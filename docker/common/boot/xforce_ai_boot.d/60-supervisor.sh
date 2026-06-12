@@ -60,7 +60,7 @@ xforce_supervisor_main() {
   export XFORCE_SUPERVISOR_STATE_DIR="${XFORCE_SUPERVISOR_STATE_DIR:-/tmp/xforce-ai/supervisor}"
   export XFORCE_SERVICE_LOG_DIR="${XFORCE_SERVICE_LOG_DIR:-/tmp/xforce-ai/services}"
 
-  mkdir -p "$XFORCE_SUPERVISOR_STATE_DIR/logs" "$XFORCE_SERVICE_LOG_DIR/portal-backend" "$XFORCE_SERVICE_LOG_DIR/example-pty-service" "$XFORCE_SERVICE_LOG_DIR/caddy" "$XFORCE_SERVICE_LOG_DIR/cloudflared" "${XFORCE_BOOT_STATE_DIR:-/tmp/xforce-ai}/portal" /tmp/xforce-ai/pty /tmp/xforce-ai/metrics
+  mkdir -p "$XFORCE_SUPERVISOR_STATE_DIR/logs" "$XFORCE_SERVICE_LOG_DIR/portal-backend" "$XFORCE_SERVICE_LOG_DIR/example-pty-service" "$XFORCE_SERVICE_LOG_DIR/ipfs-daemon" "$XFORCE_SERVICE_LOG_DIR/caddy" "$XFORCE_SERVICE_LOG_DIR/cloudflared" "${XFORCE_BOOT_STATE_DIR:-/tmp/xforce-ai}/portal" /tmp/xforce-ai/pty /tmp/xforce-ai/metrics
 
   case "$XFORCE_SUPERVISOR_ON_BOOT" in
     0|false|FALSE|no|NO|off|OFF)
