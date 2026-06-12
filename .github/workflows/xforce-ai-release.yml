@@ -1,0 +1,236 @@
+name: xforce_AI release
+
+on:
+  push:
+    tags:
+      - xforce-ai/v*
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Release or development image tag
+        required: true
+      variants:
+        description: Comma-separated variants
+        default: cpu,nvidia,rocm
+      platforms:
+        description: Default comma-separated platforms
+        default: linux/amd64,linux/arm64
+      push_to_dockerhub:
+        description: Mirror to Docker Hub when credentials exist
+        type: boolean
+        default: true
+      enable_nushell:
+        description: Build Nushell into images
+        type: boolean
+        default: true
+      enable_cloudflared:
+        description: Build Cloudflared into images when supported
+        type: boolean
+        default: false
+      no_cache:
+        description: Disable Buildx cache
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  XFORCE_DIR: .
+  GHCR_REPOSITORY: ghcr.io/xforce-ai/xforce-ai
+  DOCKERHUB_REPOSITORY: docker.io/xforce/xforce-ai
+
+jobs:
+  resolve-inputs:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.resolve.outputs.image_tag }}
+      variants: ${{ steps.resolve.outputs.variants }}
+      default_platforms: ${{ steps.resolve.outputs.default_platforms }}
+      short_sha: ${{ steps.resolve.outputs.short_sha }}
+      push_dockerhub: ${{ steps.resolve.outputs.push_dockerhub }}
+      enable_nushell: ${{ steps.resolve.outputs.enable_nushell }}
+      enable_cloudflared: ${{ steps.resolve.outputs.enable_cloudflared }}
+      no_cache: ${{ steps.resolve.outputs.no_cache }}
+    steps:
+      - name: Resolve release inputs
+        id: resolve
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
+            raw_tag="${{ inputs.image_tag }}"
+            variants="${{ inputs.variants }}"
+            platforms="${{ inputs.platforms }}"
+            push_dockerhub="${{ inputs.push_to_dockerhub }}"
+            enable_nushell="${{ inputs.enable_nushell }}"
+            enable_cloudflared="${{ inputs.enable_cloudflared }}"
+            no_cache="${{ inputs.no_cache }}"
+          elif [ "${{ github.event_name }}" = release ]; then
+            raw_tag="${{ github.event.release.tag_name }}"
+            variants="cpu,nvidia,rocm"
+            platforms="linux/amd64,linux/arm64"
+            push_dockerhub="true"
+            enable_nushell="true"
+            enable_cloudflared="false"
+            no_cache="false"
+          else
+            raw_tag="${GITHUB_REF#refs/tags/}"
+            variants="cpu,nvidia,rocm"
+            platforms="linux/amd64,linux/arm64"
+            push_dockerhub="true"
+            enable_nushell="true"
+            enable_cloudflared="false"
+            no_cache="false"
+          fi
+          image_tag="${raw_tag#xforce-ai/}"
+          short_sha="${GITHUB_SHA::7}"
+          python3 - "$variants" <<'PY' > /tmp/variants.json
+import json, sys
+items=[x.strip() for x in sys.argv[1].split(',') if x.strip()]
+bad=[x for x in items if x not in {'cpu','nvidia','rocm'}]
+if bad:
+    raise SystemExit(f'unsupported variants: {bad}')
+print(json.dumps(items))
+PY
+          {
+            echo "image_tag=$image_tag"
+            echo "variants=$(cat /tmp/variants.json)"
+            echo "default_platforms=$platforms"
+            echo "short_sha=$short_sha"
+            echo "push_dockerhub=$push_dockerhub"
+            echo "enable_nushell=$enable_nushell"
+            echo "enable_cloudflared=$enable_cloudflared"
+            echo "no_cache=$no_cache"
+          } >> "$GITHUB_OUTPUT"
+
+  preflight:
+    runs-on: ubuntu-latest
+    needs: resolve-inputs
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run static preflight
+        working-directory: ${{ env.XFORCE_DIR }}
+        run: scripts/ci-smoke.sh preflight
+
+  smoke-cpu-amd64:
+    runs-on: ubuntu-latest
+    needs: [resolve-inputs, preflight]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and run CPU smoke gate
+        working-directory: ${{ env.XFORCE_DIR }}
+        env:
+          IMAGE_TAG: f011-${{ needs.resolve-inputs.outputs.short_sha }}
+          ENABLE_NUSHELL: '0'
+          ENABLE_CLOUDFLARED: '0'
+          PLATFORMS: linux/amd64
+          PUSH: '0'
+          LOAD: '1'
+        run: scripts/ci-smoke.sh smoke
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [resolve-inputs, smoke-cpu-amd64]
+    env:
+      DOCKERHUB_USERNAME_VALUE: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN_VALUE: ${{ secrets.DOCKERHUB_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ fromJson(needs.resolve-inputs.outputs.variants) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Docker Hub
+        if: ${{ needs.resolve-inputs.outputs.push_dockerhub == 'true' && env.DOCKERHUB_USERNAME_VALUE != '' && env.DOCKERHUB_TOKEN_VALUE != '' }}
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ env.DOCKERHUB_USERNAME_VALUE }}
+          password: ${{ env.DOCKERHUB_TOKEN_VALUE }}
+      - name: Build and push variant
+        id: build
+        working-directory: ${{ env.XFORCE_DIR }}
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.resolve-inputs.outputs.image_tag }}
+          ENABLE_NUSHELL: ${{ needs.resolve-inputs.outputs.enable_nushell == 'true' && '1' || '0' }}
+          ENABLE_CLOUDFLARED: ${{ needs.resolve-inputs.outputs.enable_cloudflared == 'true' && '1' || '0' }}
+          XFORCE_IMAGE_REVISION: ${{ github.sha }}
+          XFORCE_IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+          XFORCE_IMAGE_CREATED: ${{ github.event.repository.updated_at }}
+          PUSH: '1'
+        run: |
+          set -Eeuo pipefail
+          variant='${{ matrix.variant }}'
+          platforms='${{ needs.resolve-inputs.outputs.default_platforms }}'
+          if [ "$variant" = rocm ]; then
+            platforms='linux/amd64'
+          fi
+          include_dockerhub=0
+          if [ '${{ needs.resolve-inputs.outputs.push_dockerhub }}' = true ] && [ -n "$DOCKERHUB_USERNAME_VALUE" ] && [ -n "$DOCKERHUB_TOKEN_VALUE" ]; then
+            include_dockerhub=1
+          fi
+          export INCLUDE_DOCKERHUB="$include_dockerhub"
+          export IMAGE_TAGS="$(OUTPUT=csv scripts/image-tags.sh "$variant" "$IMAGE_TAG" '${{ needs.resolve-inputs.outputs.short_sha }}')"
+          metadata="dist/metadata/${variant}-${IMAGE_TAG}.json"
+          cache_from="type=gha,scope=xforce-ai-${variant}"
+          cache_to="type=gha,mode=max,scope=xforce-ai-${variant}"
+          if [ '${{ needs.resolve-inputs.outputs.no_cache }}' = true ]; then
+            cache_from=''
+            cache_to=''
+            export NO_CACHE=1
+          fi
+          PLATFORMS="$platforms" CACHE_FROM="$cache_from" CACHE_TO="$cache_to" OUTPUT_METADATA="$metadata" scripts/build-image.sh "$variant"
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: xforce-ai-build-metadata-${{ matrix.variant }}-${{ needs.resolve-inputs.outputs.image_tag }}
+          path: ${{ env.XFORCE_DIR }}/dist/metadata/*.json
+
+  collect-digests:
+    runs-on: ubuntu-latest
+    needs: [resolve-inputs, build-and-push]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: xforce-ai-build-metadata-*-${{ needs.resolve-inputs.outputs.image_tag }}
+          path: ${{ env.XFORCE_DIR }}/dist/metadata
+          merge-multiple: true
+      - name: Collect digest artifacts
+        working-directory: ${{ env.XFORCE_DIR }}
+        env:
+          RELEASE_TAG: ${{ needs.resolve-inputs.outputs.image_tag }}
+        run: |
+          set -Eeuo pipefail
+          scripts/collect-image-digests.sh
+          cp "dist/xforce-ai-digests-${RELEASE_TAG}.json" "dist/xforce-ai-release-manifest-${RELEASE_TAG}.json"
+          {
+            echo "# xforce_AI build summary ${RELEASE_TAG}"
+            echo
+            echo '```json'
+            cat "dist/xforce-ai-digests-${RELEASE_TAG}.json"
+            echo '```'
+          } > "dist/xforce-ai-build-summary-${RELEASE_TAG}.md"
+          cat "dist/xforce-ai-build-summary-${RELEASE_TAG}.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xforce-ai-release-artifacts-${{ needs.resolve-inputs.outputs.image_tag }}
+          path: |
+            ${{ env.XFORCE_DIR }}/dist/xforce-ai-digests-*.json
+            ${{ env.XFORCE_DIR }}/dist/xforce-ai-release-manifest-*.json
+            ${{ env.XFORCE_DIR }}/dist/xforce-ai-build-summary-*.md
