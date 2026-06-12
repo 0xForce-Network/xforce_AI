@@ -13,6 +13,27 @@ case "$mode" in
     python3 -m compileall hil_orchestrator
     python3 -m hil_orchestrator validate-config --models configs/hil/model-requirements.yaml --suites configs/hil/hil-suites.yaml --inventory configs/hil/fixture-gpu-inventory.yaml >/dev/null
     bash -n docker/common/*.sh docker/common/boot/*.sh docker/common/boot/xforce_ai_boot.d/*.sh scripts/*.sh
+    PYTHONPATH=docker/common python3 - <<'PY'
+from pathlib import Path
+from portal.files import FileRoot, safe_child
+from portal.ipfs import IPFSBackupManager, IPFSConfig
+import tempfile
+with tempfile.TemporaryDirectory() as td:
+    root_dir = Path(td) / "outputs"
+    root_dir.mkdir()
+    sample = root_dir / "sample.txt"
+    sample.write_text("xforce", encoding="utf-8")
+    root = FileRoot("outputs", root_dir.resolve())
+    assert safe_child(root, "sample.txt") == sample.resolve()
+    try:
+        safe_child(root, "../../etc/passwd")
+    except Exception:
+        pass
+    else:
+        raise AssertionError("path traversal accepted")
+    manager = IPFSBackupManager(IPFSConfig(False, "http://127.0.0.1:5001", "/ip4/127.0.0.1/tcp/5001", "http://127.0.0.1:8081/ipfs/{cid}", False, "https://ipfs.io/ipfs/{cid}", frozenset({"outputs"}), 1073741824, Path(td) / "state.json", Path(td) / "repo"))
+    assert manager.entry_status("outputs", "sample.txt", sample, auto=True)["status"] == "disabled"
+PY
     bash scripts/hil-fixture-smoke.sh
     bash scripts/model-scheduler-fixture-smoke.sh
     ;;

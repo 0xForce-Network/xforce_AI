@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+if [ "${XFORCE_IPFS_ENABLED:-1}" = "0" ]; then
+  echo "xforce IPFS daemon disabled by XFORCE_IPFS_ENABLED=0"
+  exec sleep infinity
+fi
+
+ipfs_bin="${XFORCE_IPFS_BIN:-/usr/local/bin/ipfs}"
+repo="${XFORCE_IPFS_REPO:-/workspace/.xforce-ipfs/repo}"
+api_addr="${XFORCE_IPFS_API_ADDR:-/ip4/127.0.0.1/tcp/5001}"
+gateway_addr="${XFORCE_IPFS_GATEWAY_ADDR:-/ip4/127.0.0.1/tcp/8081}"
+swarm_addr="${XFORCE_IPFS_SWARM_ADDR:-/ip4/0.0.0.0/tcp/4001}"
+enable_swarm="${XFORCE_IPFS_ENABLE_SWARM:-0}"
+
+if [ ! -x "$ipfs_bin" ]; then
+  echo "ipfs binary not found or not executable: $ipfs_bin" >&2
+  exit 127
+fi
+
+export IPFS_PATH="$repo"
+mkdir -p "$repo" "$(dirname "$repo")"
+
+if [ ! -f "$repo/config" ]; then
+  "$ipfs_bin" init --profile=server
+fi
+
+"$ipfs_bin" config Addresses.API "$api_addr"
+"$ipfs_bin" config Addresses.Gateway "$gateway_addr"
+if [ "$enable_swarm" = "1" ]; then
+  "$ipfs_bin" config --json Addresses.Swarm "[\"$swarm_addr\"]"
+else
+  "$ipfs_bin" config --json Addresses.Swarm "[]"
+fi
+
+exec "$ipfs_bin" daemon --migrate=true

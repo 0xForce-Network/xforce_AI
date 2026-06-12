@@ -27,6 +27,9 @@ curl -fsS "$portal_base/api/v1/health" | grep -q '"status":"ok"'
 curl -fsS "$portal_base/api/v1/services" | grep -q 'example-pty-service'
 curl -fsS "$portal_base/api/v1/metrics" | grep -q '"cpu"'
 curl -fsS "$portal_base/api/v1/metrics/gpu" | grep -q '"providers"'
+curl -fsS "$portal_base/api/v1/files" | grep -q '"roots"'
+curl -fsS "$portal_base/api/v1/ipfs/status" | grep -q '"autoMaxBytes"'
+curl -fsS "$portal_base/api/v1/portal-assets/file-browser.js" | grep -q 'XForceFileBrowser'
 
 tmp="$(mktemp -d)"
 mkdir -p "$tmp/cgroups-v2" "$tmp/cgroups-v1" "$tmp/fake-bin"

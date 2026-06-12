@@ -20,6 +20,9 @@ ARG XFORCE_IMAGE_CREATED=unknown
 ARG NUSHELL_VERSION=0.113.1
 ARG NUSHELL_SHA256_AMD64=9008d309aaa35e29ed5d5985306a83e2bf5093e31677d4cd969914552d12b8fb
 ARG NUSHELL_SHA256_ARM64=08b94c6fd9c66881616df4c89adc03e8a42a57fdf6876cfd1b16cec7e82348b4
+ARG KUBO_VERSION=0.32.1
+ARG KUBO_SHA512_AMD64=36b2951de759710ad81f63f3ec3a75c72323be4c6599e737d7f27b437dce02ed0a1662d676137e98f2e88f0b96e41c4b46b2e1667d874f90e3a7ee437912fda4
+ARG KUBO_SHA512_ARM64=2f7b8589f5a1d715ed853766b0eed206be5bbdc9fed6df9e6b350546336cf9d8395e8f5b167ae05d073ab032ca9bfaa441d022b95b1ebb5bc52413276a22c6c2
 ARG CLOUDFLARED_VERSION=2025.6.0
 ARG CLOUDFLARED_SHA256_AMD64=
 ARG CLOUDFLARED_SHA256_ARM64=
@@ -32,6 +35,16 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ENABLE_CLOUDFLARED=${ENABLE_CLOUDFLARED} \
     ENABLE_FASTSOURCES=${ENABLE_FASTSOURCES} \
     NUSHELL_VERSION=${NUSHELL_VERSION} \
+    KUBO_VERSION=${KUBO_VERSION} \
+    XFORCE_IPFS_ENABLED=1 \
+    XFORCE_IPFS_REPO=/workspace/.xforce-ipfs/repo \
+    XFORCE_IPFS_API_URL=http://127.0.0.1:5001 \
+    XFORCE_IPFS_GATEWAY_URL=/ipfs/{cid} \
+    XFORCE_IPFS_PUBLIC_GATEWAY_ENABLED=0 \
+    XFORCE_IPFS_PUBLIC_GATEWAY_URL=https://ipfs.io/ipfs/{cid} \
+    XFORCE_IPFS_AUTO_ROOTS=outputs \
+    XFORCE_IPFS_AUTO_MAX_BYTES=1073741824 \
+    XFORCE_FILE_ROOTS=outputs:/workspace/outputs \
     WORKSPACE_DIR=${WORKSPACE_DIR} \
     VENV_DIR=${VENV_DIR} \
     PATH=${VENV_DIR}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -52,6 +65,7 @@ COPY docker/common/base-packages.txt /tmp/xforce-base-packages.txt
 COPY docker/common/python-requirements.txt /tmp/xforce-python-requirements.txt
 COPY docker/common/fastsources.list /tmp/xforce-fastsources.list
 COPY docker/common/install-nushell.sh /tmp/xforce-install-nushell.sh
+COPY docker/common/install-ipfs.sh /tmp/xforce-install-ipfs.sh
 COPY docker/common/nushell/ /tmp/xforce-nushell/
 COPY docker/common/provisioner/ /tmp/xforce-provisioner/
 COPY docker/common/xforce-provision /tmp/xforce-provision
@@ -65,6 +79,7 @@ COPY docker/common/supervisor/ /tmp/xforce-supervisor/
 COPY docker/common/xforce-portal /tmp/xforce-portal
 COPY docker/common/xforce-caddy /tmp/xforce-caddy
 COPY docker/common/xforce-tunnel /tmp/xforce-tunnel
+COPY docker/common/xforce-ipfs-daemon /tmp/xforce-ipfs-daemon
 
 RUN apt_opts='-o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::ForceIPv4=true' \
     && if [ "${ENABLE_FASTSOURCES}" = "1" ]; then \
@@ -83,7 +98,7 @@ RUN apt_opts='-o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::htt
     && if [ -z "${xforce_group}" ]; then groupadd --gid "${XFORCE_GID}" "${XFORCE_USER}"; elif [ "${xforce_group}" != "${XFORCE_USER}" ]; then groupmod --new-name "${XFORCE_USER}" "${xforce_group}"; fi \
     && xforce_user="$(getent passwd "${XFORCE_UID}" | cut -d: -f1 || true)" \
     && if [ -z "${xforce_user}" ]; then useradd --uid "${XFORCE_UID}" --gid "${XFORCE_USER}" --create-home --home-dir "/home/${XFORCE_USER}" --shell /bin/bash "${XFORCE_USER}"; elif [ "${xforce_user}" != "${XFORCE_USER}" ]; then usermod --login "${XFORCE_USER}" --home "/home/${XFORCE_USER}" --move-home --shell /bin/bash "${xforce_user}"; else usermod --home "/home/${XFORCE_USER}" --move-home --shell /bin/bash "${XFORCE_USER}"; fi \
-    && mkdir -p /opt/xforce-ai/bin /opt/xforce-ai/lib /opt/xforce-ai/share/workspace-seed /opt/xforce-ai/share/provisioner/examples /opt/portal-aio /etc/xforce-ai/caddy /etc/caddy /etc/xforce_ai_boot.d /etc/supervisor/conf.d "${WORKSPACE_DIR}" "${VENV_DIR}" \
+    && mkdir -p /opt/xforce-ai/bin /opt/xforce-ai/lib /opt/xforce-ai/share/workspace-seed /opt/xforce-ai/share/provisioner/examples /opt/portal-aio /etc/xforce-ai/caddy /etc/caddy /etc/xforce_ai_boot.d /etc/supervisor/conf.d "${WORKSPACE_DIR}" "${WORKSPACE_DIR}/outputs" "${WORKSPACE_DIR}/.xforce-ipfs" "${VENV_DIR}" \
     && python3 -m venv "${VENV_DIR}" \
     && if grep -vE '^\s*(#|$)' /tmp/xforce-python-requirements.txt | grep -q .; then "${VENV_DIR}/bin/pip" install --no-cache-dir --upgrade -r /tmp/xforce-python-requirements.txt; fi \
     && cp -a /tmp/xforce-provisioner /opt/xforce-ai/lib/provisioner \
@@ -101,10 +116,12 @@ RUN apt_opts='-o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::htt
     && cp /tmp/xforce-portal /opt/xforce-ai/bin/xforce-portal \
     && cp /tmp/xforce-caddy /opt/xforce-ai/bin/xforce-caddy \
     && cp /tmp/xforce-tunnel /opt/xforce-ai/bin/xforce-tunnel \
-    && chmod 0755 /opt/xforce-ai/bin/xforce-provision /opt/xforce-ai/bin/xforce-pty-wrap /opt/xforce-ai/bin/xforce-portal /opt/xforce-ai/bin/xforce-caddy /opt/xforce-ai/bin/xforce-tunnel \
+    && cp /tmp/xforce-ipfs-daemon /opt/xforce-ai/bin/xforce-ipfs-daemon \
+    && chmod 0755 /opt/xforce-ai/bin/xforce-provision /opt/xforce-ai/bin/xforce-pty-wrap /opt/xforce-ai/bin/xforce-portal /opt/xforce-ai/bin/xforce-caddy /opt/xforce-ai/bin/xforce-tunnel /opt/xforce-ai/bin/xforce-ipfs-daemon \
+    && KUBO_VERSION="${KUBO_VERSION}" KUBO_SHA512_AMD64="${KUBO_SHA512_AMD64}" KUBO_SHA512_ARM64="${KUBO_SHA512_ARM64}" bash /tmp/xforce-install-ipfs.sh \
     && if [ "${ENABLE_NUSHELL}" = "1" ]; then bash /tmp/xforce-install-nushell.sh && { grep -qxF /usr/local/bin/nu /etc/shells || printf '%s\n' /usr/local/bin/nu >> /etc/shells; } && usermod --shell /usr/local/bin/nu "${XFORCE_USER}" && mkdir -p "/home/${XFORCE_USER}/.config/nushell" && cp -a /tmp/xforce-nushell/. "/home/${XFORCE_USER}/.config/nushell/"; fi \
     && chown -R "${XFORCE_UID}:${XFORCE_GID}" "${WORKSPACE_DIR}" "/home/${XFORCE_USER}" "${VENV_DIR}" \
-    && rm -rf /tmp/xforce-base-packages.txt /tmp/xforce-python-requirements.txt /tmp/xforce-fastsources.list /tmp/xforce-install-nushell.sh /tmp/xforce-nushell /tmp/xforce-provisioner /tmp/xforce-provision /tmp/xforce-pty-wrapper /tmp/xforce-pty-wrap /tmp/xforce-portal-package /tmp/xforce-caddy-manager /tmp/xforce-tunnel-manager /tmp/xforce-caddy-config /tmp/xforce-supervisor /tmp/xforce-portal /tmp/xforce-caddy /tmp/xforce-tunnel
+    && rm -rf /tmp/xforce-base-packages.txt /tmp/xforce-python-requirements.txt /tmp/xforce-fastsources.list /tmp/xforce-install-nushell.sh /tmp/xforce-install-ipfs.sh /tmp/xforce-nushell /tmp/xforce-provisioner /tmp/xforce-provision /tmp/xforce-pty-wrapper /tmp/xforce-pty-wrap /tmp/xforce-portal-package /tmp/xforce-caddy-manager /tmp/xforce-tunnel-manager /tmp/xforce-caddy-config /tmp/xforce-supervisor /tmp/xforce-portal /tmp/xforce-caddy /tmp/xforce-tunnel /tmp/xforce-ipfs-daemon
 
 COPY docker/common/boot/entrypoint.sh /opt/xforce-ai/bin/entrypoint.sh
 COPY docker/common/boot/boot_default.sh /opt/xforce-ai/bin/boot_default.sh
@@ -115,8 +132,9 @@ COPY docker/common/provisioner-smoke-test.sh /opt/xforce-ai/bin/provisioner-smok
 COPY docker/common/pty-wrapper-smoke-test.sh /opt/xforce-ai/bin/pty-wrapper-smoke-test.sh
 COPY docker/common/portal-smoke-test.sh /opt/xforce-ai/bin/portal-smoke-test.sh
 COPY docker/common/caddy-tunnel-smoke-test.sh /opt/xforce-ai/bin/caddy-tunnel-smoke-test.sh
+COPY docker/common/ipfs-smoke-test.sh /opt/xforce-ai/bin/ipfs-smoke-test.sh
 
-RUN chmod 0755 /opt/xforce-ai/bin/entrypoint.sh /opt/xforce-ai/bin/boot_default.sh /opt/xforce-ai/bin/smoke-test.sh /opt/xforce-ai/bin/provisioner-smoke-test.sh /opt/xforce-ai/bin/pty-wrapper-smoke-test.sh /opt/xforce-ai/bin/portal-smoke-test.sh /opt/xforce-ai/bin/caddy-tunnel-smoke-test.sh \
+RUN chmod 0755 /opt/xforce-ai/bin/entrypoint.sh /opt/xforce-ai/bin/boot_default.sh /opt/xforce-ai/bin/smoke-test.sh /opt/xforce-ai/bin/provisioner-smoke-test.sh /opt/xforce-ai/bin/pty-wrapper-smoke-test.sh /opt/xforce-ai/bin/portal-smoke-test.sh /opt/xforce-ai/bin/caddy-tunnel-smoke-test.sh /opt/xforce-ai/bin/ipfs-smoke-test.sh \
     && chmod 0644 /etc/xforce_ai_boot.d/*.sh
 
 WORKDIR ${WORKSPACE_DIR}

@@ -15,6 +15,7 @@ The project is planned around the following runtime layers:
 - Supervisor-managed services
 - Caddy reverse proxy and Cloudflare tunnel support
 - FastAPI Instance Portal using the Claude Cream visual language
+- Safe output file browser with local IPFS backup metadata and gateway links
 - CI image publishing to GHCR with Docker Hub mirror support
 - GPU hardware-in-the-loop validation and model-to-GPU scheduling readiness
 
@@ -107,3 +108,21 @@ python3 -m hil_orchestrator preflight --model-id stable-diffusion-xl --max-price
 ```
 
 Operational details are documented in `docs/hil-validation.md` and `docs/model-scheduling.md`.
+
+## Local IPFS output backup
+
+F014 adds a base-platform IPFS backup surface for generated outputs. Images now include a local Kubo daemon managed by Supervisor and a Portal file browser for safe output access.
+
+Default runtime settings:
+
+- `XFORCE_IPFS_ENABLED=1`
+- `XFORCE_IPFS_REPO=/workspace/.xforce-ipfs/repo`
+- `XFORCE_IPFS_API_URL=http://127.0.0.1:5001`
+- `XFORCE_IPFS_GATEWAY_URL=/ipfs/{cid}`
+- `XFORCE_IPFS_PUBLIC_GATEWAY_ENABLED=0` (set to `1` only when the node can publish providers to the public IPFS network)
+- `XFORCE_IPFS_PUBLIC_GATEWAY_URL=https://ipfs.io/ipfs/{cid}`
+- `XFORCE_IPFS_AUTO_ROOTS=outputs`
+- `XFORCE_IPFS_AUTO_MAX_BYTES=1073741824`
+- `XFORCE_FILE_ROOTS=outputs:/workspace/outputs`
+
+Files under `/workspace/outputs` are shown through `/files/` and `/api/v1/files/*`. Files at or below 1 GiB are queued for background local IPFS `add --pin`; larger files are marked `manual_required` and can be backed up via `POST /api/v1/ipfs/backup`.

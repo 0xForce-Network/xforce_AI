@@ -1,11 +1,228 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>xforce_AI Instance Portal Backend</title>
-  </head>
-  <body>
-    <h1>xforce_AI Instance Portal Backend</h1>
-    <p>FastAPI backend is installed. Use /api/v1/health for readiness.</p>
-  </body>
+
+<head>
+  <meta charset="utf-8" />
+  <title>xforce_AI Instance Portal Backend</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f1e8;
+      color: #211a15;
+    }
+
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 42px;
+      margin: 0 0 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      background: rgba(255, 252, 246, .94);
+      border: 1px solid rgba(71, 53, 36, .16);
+      border-radius: 20px;
+      box-shadow: 0 16px 40px rgba(62, 44, 26, .08);
+      padding: 20px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    button,
+    a.button {
+      border: 1px solid rgba(71, 53, 36, .2);
+      border-radius: 999px;
+      background: #2b2118;
+      color: #fffaf1;
+      padding: 9px 14px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 650;
+    }
+
+    button.secondary,
+    a.secondary {
+      background: #fff7ea;
+      color: #2b2118;
+    }
+
+    input,
+    select {
+      border: 1px solid rgba(71, 53, 36, .2);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fffaf4;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .file-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .file-item {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid rgba(71, 53, 36, .12);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fffaf4;
+    }
+
+    .file-name {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      background: #efe2cf;
+      color: #594936;
+    }
+
+    .pill.ok {
+      background: #dcebd5;
+      color: #28461f;
+    }
+
+    .pill.warn {
+      background: #f4dfbd;
+      color: #67420d;
+    }
+
+    .pill.error {
+      background: #f0c9c2;
+      color: #6d2118;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      overflow: auto;
+      max-height: 520px;
+      background: #231a13;
+      color: #fff4dd;
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    @media (max-width: 860px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .file-item {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>xforce_AI Instance Portal</h1>
+    <p>FastAPI backend is installed. Outputs are exposed through a safe file browser and backed up to local IPFS when
+      enabled.</p>
+    <div class="grid">
+      <section class="card">
+        <h2>安全文件浏览器</h2>
+        <p>默认只展示 <code>/workspace/outputs</code>。小于等于 1GiB 的 outputs 文件会自动排队备份到本地 IPFS；更大的文件需要手动触发。</p>
+        <div class="actions" id="roots"></div>
+        <div class="toolbar">
+          <input id="file-search" placeholder="搜索文件名或路径" />
+          <select id="file-sort" aria-label="文件排序字段">
+            <option value="name">按名称</option>
+            <option value="type">按类型</option>
+            <option value="size">按大小</option>
+            <option value="modified">按修改时间</option>
+          </select>
+          <select id="file-order" aria-label="文件排序方向">
+            <option value="asc">升序</option>
+            <option value="desc">降序</option>
+          </select>
+        </div>
+        <div class="file-list" id="files"></div>
+        <div class="actions">
+          <button class="secondary" id="file-prev">上一页</button>
+          <button class="secondary" id="file-next">下一页</button>
+          <span class="pill" id="file-page">Page —</span>
+        </div>
+      </section>
+      <aside class="card">
+        <div class="actions">
+          <button class="secondary" id="show-health">健康检查</button>
+          <button class="secondary" id="show-ipfs">IPFS 状态</button>
+          <button class="secondary" id="show-services">服务列表</button>
+        </div>
+        <pre id="status">Loading…</pre>
+      </aside>
+    </div>
+  </main>
+  <script src="/api/v1/portal-assets/file-browser.js"></script>
+  <script>
+    const statusEl = document.getElementById('status');
+    const rootsEl = document.getElementById('roots');
+    const filesEl = document.getElementById('files');
+    const state = { root: 'outputs', path: '', page: 1, pageSize: 15, search: '', sort: 'name', order: 'asc' };
+    const show = (value) => { statusEl.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); };
+    const api = window.XForceFileBrowser.api;
+    const fileBrowser = window.XForceFileBrowser.create({
+      state,
+      filesEl,
+      rootsEl,
+      buttonClass: 'secondary',
+      linkClass: 'secondary',
+      metaClass: 'pill',
+      filePageEl: document.getElementById('file-page'),
+      setStatusWindow: (_title, value) => show(value),
+      getSearch: () => document.getElementById('file-search').value,
+      getSort: () => document.getElementById('file-sort').value,
+      getOrder: () => document.getElementById('file-order').value,
+      onFile: show
+    });
+    const loadRoots = fileBrowser.loadRoots;
+    const loadFiles = fileBrowser.loadFiles;
+    document.getElementById('file-search').addEventListener('input', () => loadFiles(state.root, state.path, 1).catch(() => { }));
+    document.getElementById('file-sort').addEventListener('change', () => loadFiles(state.root, state.path, 1).catch(() => { }));
+    document.getElementById('file-order').addEventListener('change', () => loadFiles(state.root, state.path, 1).catch(() => { }));
+    document.getElementById('file-prev').addEventListener('click', () => loadFiles(state.root, state.path, Math.max(1, state.page - 1)).catch(() => { }));
+    document.getElementById('file-next').addEventListener('click', () => loadFiles(state.root, state.path, state.page + 1).catch(() => { }));
+    document.getElementById('show-health').addEventListener('click', () => api('/api/v1/health').then(show).catch((error) => show(String(error))));
+    document.getElementById('show-ipfs').addEventListener('click', () => api('/api/v1/ipfs/status').then(show).catch((error) => show(String(error))));
+    document.getElementById('show-services').addEventListener('click', () => api('/api/v1/services').then(show).catch((error) => show(String(error))));
+    loadRoots().then(() => loadFiles()).then(show).catch((error) => show(String(error)));
+  </script>
+</body>
+
 </html>

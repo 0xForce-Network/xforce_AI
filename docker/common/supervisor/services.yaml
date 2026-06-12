@@ -24,6 +24,14 @@ services:
     autostart: false
     logMode: supervisor
     description: Optional quick or named Cloudflare tunnel process.
+  - name: ipfs-daemon
+    supervisorName: ipfs-daemon
+    title: Local IPFS Daemon
+    category: storage
+    protected: true
+    autostart: true
+    logMode: supervisor
+    description: Local Kubo daemon for output file backup and gateway access.
   - name: example-pty-service
     supervisorName: example-pty-service
     title: Example PTY Service

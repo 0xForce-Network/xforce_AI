@@ -70,6 +70,8 @@ def default_routes(portal_upstream: str = "http://127.0.0.1:8080") -> list[Route
     return [
         Route(id="health", match="/healthz", upstream=f"{portal_upstream}/api/v1/health", auth="excluded", preserve_host=True),
         Route(id="root-user-css", match="/user.css", upstream="http://127.0.0.1:8188/api/userdata/user.css", auth="excluded", preserve_host=True),
+        Route(id="files", match="/files/*", upstream=portal_upstream, auth="required", preserve_host=True),
+        Route(id="ipfs-gateway", match="/ipfs/*", upstream="http://127.0.0.1:8081", auth="required", preserve_host=True),
         Route(id="portal-api", match="/api/*", upstream=portal_upstream, auth="required", preserve_host=True),
         Route(id="example-service", match="/services/example/*", upstream="http://127.0.0.1:18080", auth="required", preserve_host=False),
         Route(id="portal", match="/", upstream=portal_upstream, auth="required", preserve_host=True),

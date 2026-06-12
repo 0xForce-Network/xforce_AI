@@ -92,7 +92,13 @@ xforce_supervisor_main() {
   fi
 
   if [ -S "$XFORCE_SUPERVISOR_SOCKET" ]; then
-    xforce_supervisor_log info supervisor "status=already_running socket=$XFORCE_SUPERVISOR_SOCKET"
+    if supervisorctl -c "$XFORCE_SUPERVISOR_CONFIG" status >/dev/null 2>&1; then
+      xforce_supervisor_log info supervisor "status=already_running socket=$XFORCE_SUPERVISOR_SOCKET"
+    else
+      rm -f "$XFORCE_SUPERVISOR_SOCKET" "${XFORCE_SUPERVISOR_STATE_DIR}/supervisord.pid"
+      xforce_supervisor_log info supervisor "status=stale_socket_removed socket=$XFORCE_SUPERVISOR_SOCKET"
+      supervisord -c "$XFORCE_SUPERVISOR_CONFIG"
+    fi
   else
     supervisord -c "$XFORCE_SUPERVISOR_CONFIG"
   fi
