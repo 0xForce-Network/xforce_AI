@@ -1,0 +1,28 @@
+apiVersion: xforce.ai/dockers-catalog/v1
+images:
+  - id: uncensored_creative01
+    title: Uncensored Creative 01
+    family: xforce-dockers
+    image: ghcr.io/0xforce-network/xforce-dockers-uncensored-creative01:creative01-latest
+    alias: ghcr.io/0xforce-network/xforce-creative-suite:creative01-latest
+    digest: ""
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    cache:
+      containerRoot: /workspace/cache/xforce_dockers/uncensored_creative01
+      recommendedHostRootSuffix: workspace/cache/xforce_dockers/uncensored_creative01
+    runtime:
+      hydrateCommand: /opt/creative/bin/hydrate-creative-suite.sh
+      installCommand: /opt/creative/bin/install-creative-suite.sh
+      statusCommand: /opt/creative/bin/creative-suite-cache-status.sh
+    ports:
+      caddy: 8088
+      portal: 8090
+      comfyui: 8188
+      ollama: 11434
+    distributionModes:
+      floating:
+        description: Follow creative01-latest and runtime update manifests.
+      pinned:
+        description: Use image digest plus locked hydrate manifests with sha256 checksums.
