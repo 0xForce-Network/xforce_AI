@@ -31,7 +31,8 @@ for path in sorted(metadata_dir.glob("*.json")):
     tags = data.get("image.name") or data.get("tags") or []
     if isinstance(tags, str):
         tags = [item.strip() for item in tags.split(",") if item.strip()]
-    variant = path.stem.split("-")[0]
+    suffix = f"-{release_tag}"
+    variant = path.stem[:-len(suffix)] if path.stem.endswith(suffix) else path.stem.split("-")[0]
     for tag in tags or [""]:
         repository, _, image_tag = tag.partition(":")
         registry = "dockerhub" if repository.startswith("docker.io/") else "ghcr" if repository.startswith("ghcr.io/") else "unknown"

@@ -3,18 +3,21 @@ IMAGE_NAME ?= xforce-ai
 IMAGE_TAG ?= dev
 PLATFORMS ?= linux/amd64
 PUSH ?= 0
-VARIANTS ?= cpu,nvidia,rocm
+VARIANTS ?= cpu,nvidia-runtime,rocm
 ENABLE_NUSHELL ?= 1
 ENABLE_CLOUDFLARED ?= 0
 ENABLE_FASTSOURCES ?= 0
 
-.PHONY: build-cpu build-nvidia build-rocm smoke-cpu check-naming git-status preflight smoke-local build-all release-dry-run print-tags hil-validate hil-smoke scheduler-smoke
+.PHONY: build-cpu build-nvidia-runtime build-nvidia build-rocm smoke-cpu check-naming git-status preflight smoke-local build-all release-dry-run print-tags hil-validate hil-smoke scheduler-smoke
 
 build-cpu:
 	IMAGE_REGISTRY=$(IMAGE_REGISTRY) IMAGE_NAME=$(IMAGE_NAME) IMAGE_TAG=$(IMAGE_TAG) PLATFORMS=$(PLATFORMS) PUSH=$(PUSH) ENABLE_NUSHELL=$(ENABLE_NUSHELL) ENABLE_CLOUDFLARED=$(ENABLE_CLOUDFLARED) ENABLE_FASTSOURCES=$(ENABLE_FASTSOURCES) scripts/build-image.sh cpu
 
 build-nvidia:
 	IMAGE_REGISTRY=$(IMAGE_REGISTRY) IMAGE_NAME=$(IMAGE_NAME) IMAGE_TAG=$(IMAGE_TAG) PLATFORMS=$(PLATFORMS) PUSH=$(PUSH) ENABLE_NUSHELL=$(ENABLE_NUSHELL) ENABLE_CLOUDFLARED=$(ENABLE_CLOUDFLARED) ENABLE_FASTSOURCES=$(ENABLE_FASTSOURCES) scripts/build-image.sh nvidia
+
+build-nvidia-runtime:
+	IMAGE_REGISTRY=$(IMAGE_REGISTRY) IMAGE_NAME=$(IMAGE_NAME) IMAGE_TAG=$(IMAGE_TAG) PLATFORMS=$(PLATFORMS) PUSH=$(PUSH) ENABLE_NUSHELL=$(ENABLE_NUSHELL) ENABLE_CLOUDFLARED=$(ENABLE_CLOUDFLARED) ENABLE_FASTSOURCES=$(ENABLE_FASTSOURCES) scripts/build-image.sh nvidia-runtime
 
 build-rocm:
 	IMAGE_REGISTRY=$(IMAGE_REGISTRY) IMAGE_NAME=$(IMAGE_NAME) IMAGE_TAG=$(IMAGE_TAG) PLATFORMS=$(PLATFORMS) PUSH=$(PUSH) ENABLE_NUSHELL=$(ENABLE_NUSHELL) ENABLE_CLOUDFLARED=$(ENABLE_CLOUDFLARED) ENABLE_FASTSOURCES=$(ENABLE_FASTSOURCES) scripts/build-image.sh rocm

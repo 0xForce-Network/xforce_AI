@@ -14,7 +14,7 @@ on:
         required: true
       variants:
         description: Comma-separated variants
-        default: cpu,nvidia,rocm
+        default: cpu,nvidia-runtime,rocm
       platforms:
         description: Default comma-separated platforms
         default: linux/amd64,linux/arm64
@@ -72,7 +72,7 @@ jobs:
             no_cache="${{ inputs.no_cache }}"
           elif [ "${{ github.event_name }}" = release ]; then
             raw_tag="${{ github.event.release.tag_name }}"
-            variants="cpu,nvidia,rocm"
+            variants="cpu,nvidia-runtime,rocm"
             platforms="linux/amd64,linux/arm64"
             push_dockerhub="true"
             enable_nushell="true"
@@ -80,7 +80,7 @@ jobs:
             no_cache="false"
           else
             raw_tag="${GITHUB_REF#refs/tags/}"
-            variants="cpu,nvidia,rocm"
+            variants="cpu,nvidia-runtime,rocm"
             platforms="linux/amd64,linux/arm64"
             push_dockerhub="true"
             enable_nushell="true"
@@ -92,7 +92,7 @@ jobs:
           python3 - "$variants" <<'PY' > /tmp/variants.json
 import json, sys
 items=[x.strip() for x in sys.argv[1].split(',') if x.strip()]
-bad=[x for x in items if x not in {'cpu','nvidia','rocm'}]
+bad=[x for x in items if x not in {'cpu','nvidia-runtime','nvidia','rocm'}]
 if bad:
     raise SystemExit(f'unsupported variants: {bad}')
 print(json.dumps(items))

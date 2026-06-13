@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/build-image.sh <cpu|nvidia|rocm>
+Usage: scripts/build-image.sh <cpu|nvidia-runtime|nvidia|rocm>
 
 Environment variables:
   IMAGE_REGISTRY       default: ghcr.io/xforce-ai
@@ -29,7 +29,7 @@ if [ -z "$variant" ]; then
 fi
 
 case "$variant" in
-  cpu|nvidia|rocm) ;;
+  cpu|nvidia-runtime|nvidia|rocm) ;;
   *)
     usage >&2
     echo "unknown variant: $variant" >&2

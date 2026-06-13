@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/image-tags.sh <cpu|nvidia|rocm> <tag-or-ref> [shortsha]
+Usage: scripts/image-tags.sh <cpu|nvidia-runtime|nvidia|rocm> <tag-or-ref> [shortsha]
 
 Environment variables:
   GHCR_REPOSITORY        default: ghcr.io/xforce-ai/xforce-ai
@@ -21,7 +21,7 @@ shortsha="${3:-${GITHUB_SHA:-}}"
 shortsha="${shortsha:0:7}"
 
 case "$variant" in
-  cpu|nvidia|rocm) ;;
+  cpu|nvidia-runtime|nvidia|rocm) ;;
   *) usage >&2; echo "unknown variant: $variant" >&2; exit 2 ;;
 esac
 

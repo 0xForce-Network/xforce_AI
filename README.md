@@ -35,7 +35,8 @@ This repository was initialized as the implementation root for the F001 Docker b
 The first implementation scaffold defines three Docker variants:
 
 - `cpu`: local smoke tests and generic non-GPU tooling
-- `nvidia`: CUDA GPU workloads
+- `nvidia-runtime`: CUDA GPU workloads for published runtime images
+- `nvidia`: CUDA GPU development workloads with CUDA devel tooling
 - `rocm`: AMD ROCm GPU workloads
 
 Runtime-owned paths use xforce names only:
@@ -49,6 +50,7 @@ Build entrypoints:
 
 ```bash
 scripts/build-image.sh cpu
+scripts/build-image.sh nvidia-runtime
 scripts/build-image.sh nvidia
 scripts/build-image.sh rocm
 ```
@@ -66,7 +68,7 @@ Useful local helpers:
 ```bash
 make preflight
 IMAGE_TAG=v1.2.3 make print-tags
-IMAGE_TAG=v0.0.0-test VARIANTS=cpu,nvidia,rocm PLATFORMS=linux/amd64 PUSH=0 make release-dry-run
+IMAGE_TAG=v0.0.0-test VARIANTS=cpu,nvidia-runtime,rocm PLATFORMS=linux/amd64 PUSH=0 make release-dry-run
 ```
 
 Release procedure and required secrets are documented in `docs/release.md`.
